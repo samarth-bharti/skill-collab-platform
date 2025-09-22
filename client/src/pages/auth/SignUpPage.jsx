@@ -1,6 +1,7 @@
+// src/pages/auth/SignUpPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext'; // CORRECTED IMPORT PATH
 import Logo from '../../components/common/Logo';
 import FormInput from '../../components/common/FormInput';
 import SocialButton from '../../components/common/SocialButton';
@@ -19,9 +20,10 @@ const AuthPageWrapper = ({ children }) => (
 
 export default function SignUpPage() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { signup } = useAuth();
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
     const [errors, setErrors] = useState({});
+    const [signupError, setSignupError] = useState('');
 
     const validate = () => {
         const newErrors = {};
@@ -34,14 +36,26 @@ export default function SignUpPage() {
         return newErrors;
     };
 
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleChange = (e) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        if (signupError) setSignupError('');
+    };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setSignupError('');
         const validationErrors = validate();
         setErrors(validationErrors);
+
         if (Object.keys(validationErrors).length === 0) {
-            navigate('/profile-builder');
+            try {
+                const fullName = `${formData.firstName} ${formData.lastName}`;
+                await signup(formData.email, formData.password, fullName);
+                navigate('/profile-builder');
+            } catch (error) {
+                console.error("Signup failed:", error);
+                setSignupError('This email address is already in use. Please try another.');
+            }
         }
     };
 
@@ -59,15 +73,11 @@ export default function SignUpPage() {
                 </div>
                 <FormInput label="Email Address:" type="email" name="email" placeholder="Enter your email address" value={formData.email} onChange={handleChange} error={errors.email}/>
                 <FormInput label="Password:" type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleChange} error={errors.password} />
+                
+                {signupError && <p className="text-red-500 text-sm">{signupError}</p>}
+
                 <div className="pt-4 space-y-4">
                     <ActionButton text="Sign up" type="submit"/>
-                    <div className="max-w-md mx-auto">
-                        <SocialButton
-                            onClick={login}
-                            icon={<img src="https://placehold.co/27x32/FFFFFF/000000?text=G" alt="Google Icon" className="w-6 h-6 rounded-sm" />}
-                            text="Sign in with Google"
-                        />
-                    </div>
                 </div>
             </form>
             <p className="text-center text-white mt-8 max-w-lg">

@@ -19,9 +19,19 @@
   },
   "homepage": "https://github.com/Shivam314115/skill-collab-platform#readme",
   "dependencies": {
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.3.0",
     "autoprefixer": "^10.4.21",
+    "framer-motion": "^12.23.16",
+    "gsap": "^3.13.0",
     "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "swiper": "^11.2.10",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0"
   }
 }

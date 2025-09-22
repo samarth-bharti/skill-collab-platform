@@ -1,29 +1,62 @@
-import React, { useState, createContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { mockUsers } from '../api/mockData';
+// src/contexts/AuthContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import { account } from '../lib/appwrite';
+import { ID } from 'appwrite';
 
-export const AuthContext = createContext(null);
+export const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [currentUser, setCurrentUser] = useState(mockUsers[0]);
-    const navigate = useNavigate();
+export function useAuth() {
+  return useContext(AuthContext);
+}
 
-    const login = () => {
-        setIsLoggedIn(true);
-        navigate('/dashboard');
-    };
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const logout = () => {
-        setIsLoggedIn(false);
-        navigate('/');
-    };
+  useEffect(() => {
+    checkUserStatus();
+  }, []);
 
-    const value = { isLoggedIn, login, logout, user: currentUser };
+  const login = async (email, password) => {
+    await account.createEmailPasswordSession(email, password);
+    const loggedInUser = await account.get();
+    setUser(loggedInUser);
+  };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+  const logout = async () => {
+    await account.deleteSession('current');
+    setUser(null);
+  };
+
+  const signup = async (email, password, name) => {
+    await account.create(ID.unique(), email, password, name);
+    // Log the user in immediately after signup
+    await login(email, password);
+  };
+
+  const checkUserStatus = async () => {
+    try {
+      const loggedInUser = await account.get();
+      setUser(loggedInUser);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const value = {
+    user,
+    loading, // Provide loading state
+    isLoggedIn: !!user, // Provide a boolean for logged-in status
+    login,
+    logout,
+    signup
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}

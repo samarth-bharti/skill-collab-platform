@@ -1,44 +1,52 @@
+// src/api/mockData.js
+
 export const mockUsers = [
-    { id: 1, name: 'Alice Johnson', role: 'Frontend Developer', avatar: 'A', location: 'San Francisco, CA', bio: 'Passionate about creating beautiful and intuitive user interfaces. Skilled in React, Tailwind, and Figma.' },
-    { id: 2, name: 'Bob Williams', role: 'Backend Developer', avatar: 'B', location: 'New York, NY', bio: 'Expert in Node.js, Python, and building scalable microservices.' },
-    { id: 3, name: 'Charlie Brown', role: 'UI/UX Designer', avatar: 'C', location: 'Austin, TX', bio: 'I turn complex problems into simple, elegant designs.' },
-    { id: 4, name: 'Diana Miller', role: 'Project Manager', avatar: 'D', location: 'Chicago, IL', bio: 'Agile enthusiast focused on delivering value and leading happy teams.' },
-];
-
-export const mockProjects = [
-    { id: 101, name: 'E-Commerce Platform', authorId: 1, members: [1, 2, 3], status: 'Ongoing', description: 'A next-gen online shopping experience with AI-powered recommendations.', tags: ['React', 'Node.js', 'Stripe'], likes: 125, rating: 4.8 },
-    { id: 102, name: 'Mobile Banking App', authorId: 4, members: [1, 4], status: 'Ongoing', description: 'A secure and user-friendly mobile app for a leading financial institution.', tags: ['React Native', 'Java', 'Security'], likes: 88, rating: 4.5 },
-    { id: 103, name: 'Data Analytics Dashboard', authorId: 2, members: [2, 3, 4], status: 'Planning', description: 'A B2B tool for visualizing complex business intelligence data.', tags: ['Python', 'D3.js', 'SQL'], likes: 210, rating: 4.9 },
-    { id: 104, name: 'Student Collaboration Hub', authorId: 3, members: [3], status: 'New', description: 'A platform for students to find teammates and build amazing projects together.', tags: ['UX Design', 'Figma', 'Research'], likes: 302, rating: 5.0 },
-];
-
-export const mockTimeline = [
-    { id: 1, user: 'Charlie Brown', action: 'pushed a new design for', target: 'E-Commerce Platform', time: '2 hours ago' },
-    { id: 2, user: 'Alice Johnson', action: 'completed task "User Authentication"', target: 'Mobile Banking App', time: '5 hours ago' },
-    { id: 3, user: 'Diana Miller', action: 'created a new project', target: 'Data Analytics Dashboard', time: '1 day ago' },
-];
-
-export const mockTasks = [
-    { id: 201, text: 'Design the product page', project: 'E-Commerce Platform', projectId: 101, user: 3, completed: false },
-    { id: 202, text: 'Setup the database schema', project: 'Mobile Banking App', projectId: 102, user: 2, completed: true },
-    { id: 203, text: 'Implement payment gateway', project: 'E-Commerce Platform', projectId: 101, user: 1, completed: false },
-];
-
-export const mockNotifications = [
-    { id: 1, text: 'Bob Williams sent you a connection request.'},
-    { id: 2, text: 'Your task "Design the product page" is due tomorrow.'},
-    { id: 3, text: 'A new project "Marketing Website" was created.'},
+  { id: 1, name: 'Satoshi Nakamoto', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
+  { id: 2, name: 'Vitalik Buterin', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026705d' },
+  { id: 3, name: 'Charles Hoskinson', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d' },
+  { id: 4, name: 'Gavin Wood', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026707d' },
 ];
 
 export const mockMessages = {
-    2: [ // Messages with Bob Williams (id: 2)
-        { id: 1, sender: 2, text: "Hey Alice, saw your project on Discover. Your React skills are impressive!", timestamp: "10:30 AM" },
-        { id: 2, sender: 1, text: "Hey Bob! Thanks, appreciate it. Your backend projects look solid too.", timestamp: "10:31 AM" },
-        { id: 3, sender: 2, text: "I'm working on a new project, a real-time data analytics dashboard. Wondering if you'd be interested in collaborating?", timestamp: "10:32 AM" },
-    ],
-    3: [ // Messages with Charlie Brown (id: 3)
-        { id: 1, sender: 3, text: "Can you take a look at the Figma file for the new landing page?", timestamp: "Yesterday" },
-        { id: 2, sender: 1, text: "Sure, I'll check it out this afternoon.", timestamp: "Yesterday" },
-    ],
-    4: [], // No messages with Diana Miller yet
+  1: [
+    { sender: 'me', text: 'Are you really the founder of Bitcoin?' },
+    { sender: 1, text: 'The world may never know.' },
+    { sender: 'me', text: 'Fair enough.' },
+  ],
+  2: [
+    { sender: 'me', text: 'Hey, when is the next Ethereum update?' },
+    { sender: 2, text: 'Soon. We are working hard on the scalability trilemma.' },
+  ],
+  3: [],
+  4: [
+    { sender: 4, text: 'Polkadot is the future of interoperability.' },
+    { sender: 'me', text: 'Interesting! Tell me more.' },
+  ]
 };
+
+export const mockNotifications = [
+    { id: 1, type: 'comment', text: 'Alice Johnson commented on your project "Web3 Social Platform".', time: '5m ago' },
+    { id: 2, type: 'like', text: 'Bob Williams liked your post about smart contracts.', time: '1h ago' },
+    { id: 3, type: 'invite', text: 'You have a new collaboration invite for "DeFi Analytics Dashboard".', time: '3h ago' },
+];
+
+export const mockProjects = [
+    { id: 1, title: 'Decentralized Identity System', description: 'A project to create a self-sovereign identity solution using blockchain.', tags: ['Blockchain', 'Identity', 'Solidity'] },
+    { id: 2, title: 'NFT Marketplace for Artists', description: 'A platform for digital artists to mint and sell their work as NFTs.', tags: ['NFT', 'React', 'Web3'] },
+    { id: 3, title: 'AI-Powered Smart Contract Auditor', description: 'Using machine learning to detect vulnerabilities in smart contracts.', tags: ['AI', 'Security', 'Ethereum'] },
+];
+
+export const mockTasks = [
+    { id: 1, text: 'Design the new landing page.', completed: false },
+    { id: 2, text: 'Develop the user authentication flow.', completed: true },
+    { id: 3, text: 'Set up the project database on Appwrite.', completed: true },
+    { id: 4, text: 'Fix the routing bug on the dashboard.', completed: false },
+];
+
+// --- ADD THIS NEW SECTION ---
+export const mockTimeline = [
+    { time: '08:00', title: 'Morning Stand-up', description: 'Team sync for the DeFi project.' },
+    { time: '10:00', title: 'Code Review', description: 'Review pull request #112 for the NFT marketplace.' },
+    { time: '14:00', title: 'Design Meeting', description: 'Finalize the UI for the profile page.' },
+    { time: '16:00', title: 'Push to Staging', description: 'Deploy the latest authentication updates.' },
+];
