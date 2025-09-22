@@ -76,6 +76,14 @@ export default function LoginPage() {
                     {/* ... your social button and sign up link ... */}
                 </div>
             </form>
+          
+                 <div className="flex justify-between items-center text-sm">
+                   <Link to="/forgot-password" className="text-blue-400 hover:underline">
+                     Forgot Password?
+                   </Link>
+                   {/* other options */}
+                 </div>
+
             <p className="text-center text-gray-400 mt-8 max-w-lg">
                 Don’t have an account? <Link to="/signup" className="font-bold text-[#36B083] cursor-pointer">Sign Up</Link>
             </p>
