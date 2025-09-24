@@ -1,92 +1,103 @@
 // src/pages/auth/LoginPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext'; // CORRECTED IMPORT PATH
+import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../../components/common/Logo';
 import FormInput from '../../components/common/FormInput';
-import SocialButton from '../../components/common/SocialButton';
 import ActionButton from '../../components/common/ActionButton';
 
 const AuthPageWrapper = ({ children }) => (
-    <div className="w-full lg:w-1/2 p-8 md:p-12">
-        <div className="absolute top-4 left-4 md:top-8 md:left-8">
-            <Link to="/" className="text-gray-400 hover:text-white transition-colors flex items-center">
-                <span className="mr-2">&larr;</span> Back to Landing Page
-            </Link>
-        </div>
-        <div className="mt-16">{children}</div>
+  <div className="w-full lg:w-1/2 p-8 md:p-12">
+    <div className="absolute top-4 left-4 md:top-8 md:left-8">
+      <Link to="/" className="text-gray-400 hover:text-white transition-colors flex items-center">
+        <span className="mr-2">&larr;</span> Back to Landing Page
+      </Link>
     </div>
+    <div className="mt-16">{children}</div>
+  </div>
 );
 
 export default function LoginPage() {
-    const { login } = useAuth();
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({ email: '', password: '' });
-    const [errors, setErrors] = useState({});
-    const [loginError, setLoginError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({});
+  const [loginError, setLoginError] = useState('');
 
-    const validate = () => {
-        const newErrors = {};
-        if (!formData.email) newErrors.email = 'Email is required.';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email address is invalid.';
-        if (!formData.password) newErrors.password = 'Password is required.';
-        return newErrors;
-    };
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.email) newErrors.email = 'Email is required.';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email address is invalid.';
+    if (!formData.password) newErrors.password = 'Password is required.';
+    return newErrors;
+  };
 
-    const handleChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-        if (loginError) setLoginError('');
-    };
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (loginError) setLoginError('');
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoginError('');
-        const validationErrors = validate();
-        setErrors(validationErrors);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    const validationErrors = validate();
+    setErrors(validationErrors);
 
-        if (Object.keys(validationErrors).length === 0) {
-            try {
-                await login(formData.email, formData.password);
-                navigate('/dashboard'); // Redirect to the dashboard on success
-            } catch (error) {
-                console.error("Login failed:", error);
-                setLoginError('Invalid email or password. Please try again.');
-            }
-        }
-    };
-    
-    return (
-        <AuthPageWrapper>
-            <Logo />
-            <div className="mt-12">
-                <h2 className="text-4xl font-semibold text-white">Login to your Account</h2>
-                <p className="text-white/80 mt-2">Unlock your Progress - Securely Access Your Project Hub</p>
-            </div>
-            <form onSubmit={handleSubmit} className="mt-8 space-y-6 max-w-lg">
-                <FormInput label="Email Address:" type="email" name="email" placeholder="Enter your email address" value={formData.email} onChange={handleChange} error={errors.email} />
-                <FormInput label="Password:" type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleChange} error={errors.password} />
-                
-                {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-                
-                <div className="flex justify-between items-center text-sm">
-                    {/* ... your remember me and forgot password links ... */}
-                </div>
-                <div className="pt-4 space-y-4">
-                    <ActionButton text="Log In" type="submit"/>
-                    {/* ... your social button and sign up link ... */}
-                </div>
-            </form>
-          
-                 <div className="flex justify-between items-center text-sm">
-                   <Link to="/forgot-password" className="text-blue-400 hover:underline">
-                     Forgot Password?
-                   </Link>
-                   {/* other options */}
-                 </div>
+    if (Object.keys(validationErrors).length === 0) {
+      try {
+        await login(formData.email, formData.password);
+        navigate('/dashboard');
+      } catch {
+        setLoginError('Invalid email or password. Please try again.');
+      }
+    }
+  };
 
-            <p className="text-center text-gray-400 mt-8 max-w-lg">
-                Don’t have an account? <Link to="/signup" className="font-bold text-[#36B083] cursor-pointer">Sign Up</Link>
-            </p>
-        </AuthPageWrapper>
-    );
+  return (
+    <AuthPageWrapper>
+      <Logo />
+      <div className="mt-12">
+        <h2 className="text-4xl font-semibold text-white">Login to your Account</h2>
+        <p className="text-white/80 mt-2">Unlock your Progress - Securely Access Your Project Hub</p>
+      </div>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6 max-w-lg">
+        <FormInput 
+          label="Email Address:" 
+          type="email" 
+          name="email" 
+          placeholder="Enter your email address" 
+          value={formData.email} 
+          onChange={handleChange} 
+          error={errors.email} 
+        />
+        <FormInput 
+          label="Password:" 
+          type="password" 
+          name="password" 
+          placeholder="Enter your password" 
+          value={formData.password} 
+          onChange={handleChange} 
+          error={errors.password} 
+        />
+        
+        {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+        
+        <div className="flex justify-between items-center text-sm">
+          <Link 
+            to="/forgot-password" 
+            className="text-[#36B083] hover:text-[#2a8a66] font-medium transition-colors"
+          >
+            Forgot Password?
+          </Link>
+        </div>
+        
+        <div className="pt-4 space-y-4">
+          <ActionButton text="Log In" type="submit"/>
+        </div>
+      </form>
+      <p className="text-center text-gray-400 mt-8 max-w-lg">
+        Don't have an account? <Link to="/signup" className="font-bold text-[#36B083] cursor-pointer">Sign Up</Link>
+      </p>
+    </AuthPageWrapper>
+  );
 }

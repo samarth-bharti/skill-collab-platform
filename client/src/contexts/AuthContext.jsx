@@ -30,7 +30,6 @@ export function AuthProvider({ children }) {
 
   const signup = async (email, password, name) => {
     await account.create(ID.unique(), email, password, name);
-    // Log the user in immediately after signup
     await login(email, password);
   };
 
@@ -38,7 +37,7 @@ export function AuthProvider({ children }) {
     try {
       const loggedInUser = await account.get();
       setUser(loggedInUser);
-    } catch (error) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -47,8 +46,8 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    loading, // Provide loading state
-    isLoggedIn: !!user, // Provide a boolean for logged-in status
+    loading,
+    isLoggedIn: !!user,
     login,
     logout,
     signup

@@ -1,8 +1,7 @@
 // src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout';
@@ -23,70 +22,101 @@ import ChatPage from './pages/dashboard/ChatPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
 import SupportPage from './pages/dashboard/SupportPage';
 
-const ProtectedRoute = ({ children }) => {
-    const { user, loading } = useAuth();
+// Simple spinner while checking auth
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-900">
+    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
+  </div>
+);
 
-    if (loading) {
-        // You can replace this with a beautiful spinner component
-        return <div>Loading...</div>;
-    }
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
 
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
-
-    return children;
-};
+function AuthRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return children;
+}
 
 export default function App() {
-    return (
-        <AuthProvider>
-            <Routes>
-                {/* --- Public Routes --- */}
-                <Route path="/" element={<LandingPage />} />
+  return (
+    <AuthProvider>
+      <Routes>
+        {/* Public landing */}
+        <Route path="/" element={<LandingPage />} />
 
-                {/* --- Authentication Routes --- */}
-                <Route element={<AuthLayout />}>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignUpPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                </Route>
+        {/* Auth pages (redirect if already logged in) */}
+        <Route element={<AuthLayout />}>
+          <Route
+            path="/login"
+            element={
+              <AuthRoute>
+                <LoginPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <AuthRoute>
+                <SignUpPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <AuthRoute>
+                <ForgotPasswordPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <AuthRoute>
+                <ResetPasswordPage />
+              </AuthRoute>
+            }
+          />
+        </Route>
 
-                {/* --- Protected Routes --- */}
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute>
-                            <DashboardLayout />
-                        </ProtectedRoute>
-                    }
-                >
-                    {/* This is the main dashboard page at /dashboard */}
-                    <Route index element={<DashboardHomePage />} />
-                    
-                    {/* Other dashboard pages */}
-                    <Route path="projects" element={<ProjectsPage />} />
-                    <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-                    <Route path="discover" element={<DiscoverPage />} />
-                    <Route path="chat" element={<ChatPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="support" element={<SupportPage />} />
-                </Route>
+        {/* Profile builder (after signup, before dashboard) */}
+        <Route
+          path="/profile-builder"
+          element={
+            <ProtectedRoute>
+              <ProfileBuilderPage />
+            </ProtectedRoute>
+          }
+        />
 
-                {/* This route is special because it's after signup but before the main dashboard */}
-                 <Route 
-                    path="/profile-builder" 
-                    element={
-                        <ProtectedRoute>
-                           <ProfileBuilderPage />
-                        </ProtectedRoute>
-                    } 
-                />
+        {/* Dashboard and sub-pages */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardHomePage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="discover" element={<DiscoverPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="support" element={<SupportPage />} />
+        </Route>
 
-                {/* --- Catch-all for undefined routes --- */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </AuthProvider>
-    );
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AuthProvider>
+  );
 }
