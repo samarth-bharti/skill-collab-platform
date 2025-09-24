@@ -1,4 +1,9 @@
+[build]
+  publish = "client/dist"
+  command = "npm --prefix client run build"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true
