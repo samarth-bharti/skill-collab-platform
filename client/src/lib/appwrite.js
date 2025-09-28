@@ -5,8 +5,8 @@ import { Client, Account, Databases, Storage } from 'appwrite';
 const client = new Client();
 
 client
-  .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-  .setProject('68c998fe000a851c62e9');
+  .setEndpoint('https://fra.cloud.appwrite.io/v1')
+  .setProject('68d698a5003a391492a8');
 
 // Export the services you'll use
 export const account = new Account(client);
