@@ -1,7 +1,8 @@
 // src/main.jsx
 
 // --- DEBUG LINE ---
-console.log("My Appwrite URL is:", import.meta.env.VITE_APPWRITE_URL);
+console.log("My Appwrite ENDPOINT is:", import.meta.env.VITE_APPWRITE_ENDPOINT);
+console.log("My Appwrite PROJECT_ID is:", import.meta.env.VITE_APPWRITE_PROJECT_ID);
 // --- END DEBUG LINE ---
 
 import React from 'react';
@@ -15,5 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
