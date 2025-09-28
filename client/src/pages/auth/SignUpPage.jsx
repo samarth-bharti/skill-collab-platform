@@ -1,88 +1,262 @@
-// src/pages/auth/SignUpPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext'; // CORRECTED IMPORT PATH
-import Logo from '../../components/common/Logo';
-import FormInput from '../../components/common/FormInput';
-import SocialButton from '../../components/common/SocialButton';
-import ActionButton from '../../components/common/ActionButton';
-
-const AuthPageWrapper = ({ children }) => (
-    <div className="w-full lg:w-1/2 p-8 md:p-12">
-        <div className="absolute top-4 left-4 md:top-8 md:left-8">
-            <Link to="/" className="text-gray-400 hover:text-white transition-colors flex items-center">
-                <span className="mr-2">&larr;</span> Back to Landing Page
-            </Link>
-        </div>
-        <div className="mt-16">{children}</div>
-    </div>
-);
+import { motion } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function SignUpPage() {
-    const navigate = useNavigate();
-    const { signup } = useAuth();
-    const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
     const [errors, setErrors] = useState({});
-    const [signupError, setSignupError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    
+    const { signup } = useAuth();
+    const navigate = useNavigate();
 
-    const validate = () => {
-        const newErrors = {};
-        if (!formData.firstName) newErrors.firstName = 'First name is required.';
-        if (!formData.lastName) newErrors.lastName = 'Last name is required.';
-        if (!formData.email) newErrors.email = 'Email is required.';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email address is invalid.';
-        if (!formData.password) newErrors.password = 'Password is required.';
-        else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters.';
-        return newErrors;
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        
+        // Clear error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
     };
 
-    const handleChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-        if (signupError) setSignupError('');
+    const validateForm = () => {
+        const newErrors = {};
+        
+        if (!formData.fullName.trim()) {
+            newErrors.fullName = 'Full name is required';
+        }
+        
+        if (!formData.email.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            newErrors.email = 'Email is invalid';
+        }
+        
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+        } else if (formData.password.length < 8) {
+            newErrors.password = 'Password must be at least 8 characters';
+        }
+        
+        if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSignupError('');
-        const validationErrors = validate();
-        setErrors(validationErrors);
-
-        if (Object.keys(validationErrors).length === 0) {
-            try {
-                const fullName = `${formData.firstName} ${formData.lastName}`;
-                await signup(formData.email, formData.password, fullName);
-                navigate('/profile-builder');
-            } catch (error) {
-                console.error("Signup failed:", error);
-                setSignupError('This email address is already in use. Please try another.');
+        
+        if (!validateForm()) return;
+        
+        setLoading(true);
+        setErrors({});
+        
+        console.log('🚀 Starting signup process...');
+        console.log('📝 Form data:', { 
+            fullName: formData.fullName, 
+            email: formData.email 
+        });
+        
+        try {
+            const result = await signup(formData.email, formData.password, formData.fullName);
+            
+            console.log('📋 Signup result:', result);
+            
+            if (result.success) {
+                console.log('✅ Signup successful!');
+                setSuccess(true);
+                
+                // Show success message and redirect after 2 seconds
+                setTimeout(() => {
+                    navigate('/dashboard');
+                }, 2000);
+            } else {
+                console.error('❌ Signup failed:', result.error);
+                setErrors({ submit: result.error });
             }
+        } catch (error) {
+            console.error('💥 Signup error:', error);
+            setErrors({ submit: error.message });
+        } finally {
+            setLoading(false);
         }
     };
 
-    return (
-        <AuthPageWrapper>
-            <Logo />
-            <div className="mt-12">
-                <h2 className="text-4xl font-semibold text-white">Create an account</h2>
-                <p className="text-white/80 mt-2">Empower your projects, Simplify your Success!</p>
+    if (success) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="max-w-md w-full mx-4 p-8 bg-black/40 backdrop-blur-xl rounded-3xl border border-green-500/20"
+                >
+                    <div className="text-center">
+                        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-8 h-8 bg-green-500 rounded-full"></div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Account Created!</h2>
+                        <p className="text-gray-400 mb-4">Welcome to Skill Collab Platform</p>
+                        <p className="text-sm text-green-400">Redirecting to dashboard...</p>
+                    </div>
+                </motion.div>
             </div>
-            <form onSubmit={handleSubmit} className="mt-8 space-y-6 max-w-lg">
-                <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
-                    <FormInput label="First Name:" type="text" name="firstName" placeholder="Enter your first name" containerClassName="w-full" value={formData.firstName} onChange={handleChange} error={errors.firstName} />
-                    <FormInput label="Last name:" type="text" name="lastName" placeholder="Enter your last name" containerClassName="w-full" value={formData.lastName} onChange={handleChange} error={errors.lastName}/>
-                </div>
-                <FormInput label="Email Address:" type="email" name="email" placeholder="Enter your email address" value={formData.email} onChange={handleChange} error={errors.email}/>
-                <FormInput label="Password:" type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleChange} error={errors.password} />
-                
-                {signupError && <p className="text-red-500 text-sm">{signupError}</p>}
+        );
+    }
 
-                <div className="pt-4 space-y-4">
-                    <ActionButton text="Sign up" type="submit"/>
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-md w-full mx-4"
+            >
+                {/* Logo and Title */}
+                <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <div className="w-8 h-8 bg-green-500 rounded-lg"></div>
+                    </div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
+                    <p className="text-gray-400">Empower your projects, Simplify your Success!</p>
                 </div>
-            </form>
-            <p className="text-center text-white mt-8 max-w-lg">
-                Do you have an account? <Link to="/login" className="font-extrabold text-[#36B083] underline cursor-pointer">Login</Link>
-            </p>
-        </AuthPageWrapper>
+
+                {/* Form */}
+                <motion.div
+                    className="bg-black/40 backdrop-blur-xl rounded-3xl p-8 border border-green-500/20"
+                >
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Full Name
+                            </label>
+                            <input
+                                type="text"
+                                name="fullName"
+                                value={formData.fullName}
+                                onChange={handleInputChange}
+                                className={`w-full px-4 py-3 bg-black/30 border rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                                    errors.fullName 
+                                        ? 'border-red-500 focus:ring-red-500/50' 
+                                        : 'border-green-500/20 focus:ring-green-500/50'
+                                }`}
+                                placeholder="Enter your full name"
+                            />
+                            {errors.fullName && (
+                                <p className="mt-1 text-sm text-red-400">{errors.fullName}</p>
+                            )}
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Email Address
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                className={`w-full px-4 py-3 bg-black/30 border rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                                    errors.email 
+                                        ? 'border-red-500 focus:ring-red-500/50' 
+                                        : 'border-green-500/20 focus:ring-green-500/50'
+                                }`}
+                                placeholder="Enter your email"
+                            />
+                            {errors.email && (
+                                <p className="mt-1 text-sm text-red-400">{errors.email}</p>
+                            )}
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleInputChange}
+                                className={`w-full px-4 py-3 bg-black/30 border rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                                    errors.password 
+                                        ? 'border-red-500 focus:ring-red-500/50' 
+                                        : 'border-green-500/20 focus:ring-green-500/50'
+                                }`}
+                                placeholder="Create a password"
+                            />
+                            {errors.password && (
+                                <p className="mt-1 text-sm text-red-400">{errors.password}</p>
+                            )}
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Confirm Password
+                            </label>
+                            <input
+                                type="password"
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleInputChange}
+                                className={`w-full px-4 py-3 bg-black/30 border rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                                    errors.confirmPassword 
+                                        ? 'border-red-500 focus:ring-red-500/50' 
+                                        : 'border-green-500/20 focus:ring-green-500/50'
+                                }`}
+                                placeholder="Confirm your password"
+                            />
+                            {errors.confirmPassword && (
+                                <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>
+                            )}
+                        </div>
+
+                        {/* Submit Error */}
+                        {errors.submit && (
+                            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl">
+                                <p className="text-red-400 text-sm">{errors.submit}</p>
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? 'Creating Account...' : 'Create Account'}
+                        </motion.button>
+                    </form>
+
+                    {/* Login Link */}
+                    <p className="mt-6 text-center text-gray-400">
+                        Already have an account?{' '}
+                        <Link to="/login" className="text-green-400 hover:text-green-300 font-medium">
+                            Sign In
+                        </Link>
+                    </p>
+                </motion.div>
+            </motion.div>
+        </div>
     );
 }

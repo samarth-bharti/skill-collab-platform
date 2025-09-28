@@ -1,84 +1,248 @@
-// src/lib/api.js
-import { account, databases, storage } from './appwrite';
-import { ID } from 'appwrite';
+import { account, databases, storage, ID, Query } from './appwrite';
 
-// --- Environment Variables ---
-const dbId = import.meta.env.VITE_APPWRITE_DATABASE_ID;
-const profilesCollectionId = import.meta.env.VITE_APPWRITE_PROFILES_COLLECTION_ID;
-const imagesBucketId = import.meta.env.VITE_APPWRITE_IMAGES_BUCKET_ID;
+// Environment variables with updated database ID
+const dbId = import.meta.env.VITE_APPWRITE_DATABASE_ID || '68d835c8003e2d44a5f9';
+const usersCollectionId = import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID || 'users';
+const messagesCollectionId = import.meta.env.VITE_APPWRITE_MESSAGES_COLLECTION_ID || 'messages';
+const storageBucketId = import.meta.env.VITE_APPWRITE_STORAGE_BUCKET_ID || 'profile-images';
 
+console.log('API Configuration:', {
+    dbId,
+    usersCollectionId,
+    messagesCollectionId,
+    storageBucketId
+});
 
-// --- Profile Management ---
+// --- User Management ---
+export const getUserProfile = async (userId) => {
+    try {
+        return await databases.getDocument(dbId, usersCollectionId, userId);
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        throw error;
+    }
+};
 
-/**
- * Uploads a profile picture to Appwrite Storage.
- * @param {File} file The image file to upload.
- * @returns {Promise<object>} The Appwrite file object.
- */
+export const createUserProfile = async (userId, profileData) => {
+    try {
+        return await databases.createDocument(dbId, usersCollectionId, userId, {
+            userId,
+            fullName: profileData.fullName,
+            email: profileData.email,
+            profilePicture: profileData.profilePicture || '',
+            createdAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error creating user profile:', error);
+        throw error;
+    }
+};
+
+export const getAllUsers = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, usersCollectionId);
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching all users:', error);
+        throw error;
+    }
+};
+
+// --- Chat/Message Management (FIXED SYNTAX) ---
+export const sendMessage = async (senderId, receiverId, content) => {
+    try {
+        // Create conversation ID (consistent for both users)
+        const conversationId = [senderId, receiverId].sort().join('_');
+        
+        const messageData = {
+            senderId,
+            receiverId,
+            content,
+            conversationId,
+            isRead: false,
+            createdAt: new Date().toISOString()
+        };
+
+        console.log('💬 Sending message:', messageData);
+        const message = await databases.createDocument(dbId, messagesCollectionId, ID.unique(), messageData);
+        console.log('✅ Message sent successfully:', message.$id);
+        return message;
+    } catch (error) {
+        console.error('❌ Error sending message:', error);
+        throw error;
+    }
+};
+
+export const getConversation = async (userId1, userId2, limit = 50) => {
+    try {
+        console.log('📥 Fetching conversation between:', userId1, 'and', userId2);
+        const conversationId = [userId1, userId2].sort().join('_');
+        
+        // FIXED: Use Query.equal instead of string interpolation
+        const response = await databases.listDocuments(
+            dbId, 
+            messagesCollectionId,
+            [
+                Query.equal("conversationId", conversationId),
+                Query.orderDesc("createdAt"),
+                Query.limit(limit)
+            ]
+        );
+        
+        // Reverse to show oldest first
+        const messages = response.documents.reverse();
+        console.log('✅ Loaded', messages.length, 'messages');
+        return messages;
+    } catch (error) {
+        console.error('❌ Error fetching conversation:', error);
+        throw error;
+    }
+};
+
+export const getUserConversations = async (userId) => {
+    try {
+        console.log('💬 Fetching conversations for user:', userId);
+        
+        // FIXED: Use Query.or with proper array syntax
+        const response = await databases.listDocuments(
+            dbId,
+            messagesCollectionId,
+            [
+                Query.or([
+                    Query.equal("senderId", userId),
+                    Query.equal("receiverId", userId)
+                ]),
+                Query.orderDesc("createdAt"),
+                Query.limit(100)
+            ]
+        );
+
+        // Group by conversation and get latest message for each
+        const conversationMap = new Map();
+        
+        response.documents.forEach(message => {
+            const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+            const existing = conversationMap.get(otherUserId);
+            
+            if (!existing || new Date(message.createdAt) > new Date(existing.createdAt)) {
+                conversationMap.set(otherUserId, {
+                    ...message,
+                    otherUserId
+                });
+            }
+        });
+
+        const conversations = Array.from(conversationMap.values());
+        console.log('✅ Found', conversations.length, 'conversations');
+        return conversations;
+    } catch (error) {
+        console.error('❌ Error fetching conversations:', error);
+        throw error;
+    }
+};
+
+export const markMessageAsRead = async (messageId) => {
+    try {
+        return await databases.updateDocument(dbId, messagesCollectionId, messageId, {
+            isRead: true
+        });
+    } catch (error) {
+        console.error('Error marking message as read:', error);
+        throw error;
+    }
+};
+
+export const getUnreadMessagesCount = async (userId) => {
+    try {
+        const response = await databases.listDocuments(dbId, messagesCollectionId, [
+            Query.equal("receiverId", userId),
+            Query.equal("isRead", false)
+        ]);
+        return response.total;
+    } catch (error) {
+        console.error('Error fetching unread messages count:', error);
+        return 0;
+    }
+};
+
+// --- Chat Helper Functions ---
+export const searchUsers = async (query, limit = 15) => {
+    try {
+        console.log('🔍 Searching users with query:', query);
+        const users = await getAllUsers();
+        
+        if (!query || !query.trim()) {
+            return [];
+        }
+        
+        const filteredUsers = users.filter(user => {
+            const fullName = (user.fullName || '').toLowerCase();
+            const email = (user.email || '').toLowerCase();
+            const searchTerm = query.toLowerCase().trim();
+            
+            return fullName.includes(searchTerm) || email.includes(searchTerm);
+        });
+        
+        console.log('✅ Found', filteredUsers.length, 'users matching query');
+        return filteredUsers.slice(0, limit);
+    } catch (error) {
+        console.error('❌ Error searching users:', error);
+        throw error;
+    }
+};
+
+export const getFeaturedUsers = async (limit = 8) => {
+    try {
+        console.log('⭐ Fetching featured users...');
+        const users = await getAllUsers();
+        
+        const featuredUsers = users
+            .sort((a, b) => new Date(b.createdAt || b.$createdAt) - new Date(a.createdAt || a.$createdAt))
+            .slice(0, limit);
+        
+        console.log('✅ Loaded', featuredUsers.length, 'featured users');
+        return featuredUsers;
+    } catch (error) {
+        console.error('❌ Error getting featured users:', error);
+        throw error;
+    }
+};
+
+// --- Direct Messaging Alias ---
+export const sendDirectMessage = async (senderId, receiverId, content) => {
+    return await sendMessage(senderId, receiverId, content);
+};
+
+// --- Storage Management ---
 export const uploadProfilePicture = async (file) => {
     try {
-        const uploadedFile = await storage.createFile(
-            imagesBucketId,
-            ID.unique(),
-            file
-        );
-        return uploadedFile;
+        const uploadedFile = await storage.createFile(storageBucketId, ID.unique(), file);
+        const fileUrl = storage.getFileView(storageBucketId, uploadedFile.$id);
+        return { fileId: uploadedFile.$id, fileUrl };
     } catch (error) {
-        console.error("Error uploading profile picture:", error);
+        console.error('Error uploading profile picture:', error);
         throw error;
     }
 };
-
-/**
- * Creates a user profile document in the database.
- * @param {object} profileData The complete profile data.
- * @returns {Promise<object>} The Appwrite document object.
- */
-export const createUserProfile = async (profileData) => {
-    try {
-        const newDocument = await databases.createDocument(
-            dbId,
-            profilesCollectionId,
-            ID.unique(),
-            profileData
-        );
-        return newDocument;
-    } catch (error) {
-        console.error("Error creating user profile document:", error);
-        throw error;
-    }
-};
-
 
 // --- Password Recovery ---
-
-/**
- * Sends a password reset email to the user.
- * @param {string} email The user's email address.
- */
 export const requestPasswordReset = async (email) => {
-    // For production, consider moving this URL to your .env file
-    const resetUrl = 'http://localhost:5173/reset-password';
-
+    const resetUrl = `${window.location.origin}/reset-password`;
     try {
-        await account.createRecovery(email, resetUrl);
+        return await account.createRecovery(email, resetUrl);
     } catch (error) {
-        console.error("Failed to request password reset:", error);
+        console.error('Failed to request password reset:', error);
         throw error;
     }
 };
 
-/**
- * Completes the password reset using the token from the email link.
- * @param {string} userId The user ID from the URL.
- * @param {string} secret The secret token from the URL.
- * @param {string} password The new password.
- */
 export const confirmPasswordReset = async (userId, secret, password) => {
     try {
-        await account.updateRecovery(userId, secret, password, password);
+        return await account.updateRecovery(userId, secret, password, password);
     } catch (error) {
-        console.error("Failed to confirm password reset:", error);
+        console.error('Failed to confirm password reset:', error);
         throw error;
     }
 };
+
+console.log('✅ API module loaded with chat functionality');

@@ -21,102 +21,56 @@ import DiscoverPage from './pages/dashboard/DiscoverPage';
 import ChatPage from './pages/dashboard/ChatPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
 import SupportPage from './pages/dashboard/SupportPage';
+import NotFoundPage from './pages/NotFoundPage';
 
-// Simple spinner while checking auth
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-900">
-    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
-  </div>
-);
-
-function ProtectedRoute({ children }) {
+function AppContent() {
   const { user, loading } = useAuth();
-  if (loading) return <LoadingSpinner />;
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+        <div className="text-green-400 text-lg animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/signup" element={!user ? <SignUpPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/reset-password" element={!user ? <ResetPasswordPage /> : <Navigate to="/dashboard" />} />
+      
+      {/* Profile Builder */}
+      <Route path="/profile-builder" element={user ? <ProfileBuilderPage /> : <Navigate to="/login" />} />
+
+      {/* Protected Routes */}
+      <Route 
+        path="/dashboard" 
+        element={user ? <DashboardLayout /> : <Navigate to="/login" />}
+      >
+        <Route index element={<DashboardHomePage />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="projects/:id" element={<ProjectDetailPage />} />
+        <Route path="chat" element={<ChatPage />} />
+        <Route path="discover" element={<DiscoverPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="support" element={<SupportPage />} />
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
 }
 
-function AuthRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingSpinner />;
-  if (user) return <Navigate to="/dashboard" replace />;
-  return children;
-}
-
-export default function App() {
+function App() {
   return (
     <AuthProvider>
-      <Routes>
-        {/* Public landing */}
-        <Route path="/" element={<LandingPage />} />
-
-        {/* Auth pages (redirect if already logged in) */}
-        <Route element={<AuthLayout />}>
-          <Route
-            path="/login"
-            element={
-              <AuthRoute>
-                <LoginPage />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <AuthRoute>
-                <SignUpPage />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <AuthRoute>
-                <ForgotPasswordPage />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/reset-password"
-            element={
-              <AuthRoute>
-                <ResetPasswordPage />
-              </AuthRoute>
-            }
-          />
-        </Route>
-
-        {/* Profile builder (after signup, before dashboard) */}
-        <Route
-          path="/profile-builder"
-          element={
-            <ProtectedRoute>
-              <ProfileBuilderPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Dashboard and sub-pages */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardHomePage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="discover" element={<DiscoverPage />} />
-          <Route path="chat" element={<ChatPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="support" element={<SupportPage />} />
-        </Route>
-
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppContent />
     </AuthProvider>
   );
 }
+
+export default App;
