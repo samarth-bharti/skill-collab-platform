@@ -22,11 +22,13 @@ import ChatPage from './pages/dashboard/ChatPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
 import SupportPage from './pages/dashboard/SupportPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ProfileBuilder from './pages/profile/ProfileBuilder';
+import EditProfile from './pages/profile/EditProfile';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { currentUser, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
         <div className="text-green-400 text-lg animate-pulse">Loading...</div>
@@ -37,19 +39,21 @@ function AppContent() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" />} />
-      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
-      <Route path="/signup" element={!user ? <SignUpPage /> : <Navigate to="/dashboard" />} />
-      <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
-      <Route path="/reset-password" element={!user ? <ResetPasswordPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/" element={!currentUser ? <LandingPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={!currentUser ? <LoginPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/signup" element={!currentUser ? <SignUpPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/forgot-password" element={!currentUser ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/reset-password" element={!currentUser ? <ResetPasswordPage /> : <Navigate to="/dashboard" />} />
       
       {/* Profile Builder */}
-      <Route path="/profile-builder" element={user ? <ProfileBuilderPage /> : <Navigate to="/login" />} />
+      <Route path="/profile-builder" element={currentUser ? <ProfileBuilderPage /> : <Navigate to="/login" />} />
+      <Route path="/profile/setup" element={<ProfileBuilder />} />
+      <Route path="/profile/edit" element={<EditProfile />} />
 
       {/* Protected Routes */}
       <Route 
         path="/dashboard" 
-        element={user ? <DashboardLayout /> : <Navigate to="/login" />}
+        element={currentUser ? <DashboardLayout /> : <Navigate to="/login" />}
       >
         <Route index element={<DashboardHomePage />} />
         <Route path="projects" element={<ProjectsPage />} />
@@ -65,12 +69,14 @@ function AppContent() {
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <>
+      {/* Router should be mounted once at the app root (e.g. main.jsx). */}
+      {/* App renders routes without wrapping another <BrowserRouter>. */}
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </>
   );
 }
-
-export default App;

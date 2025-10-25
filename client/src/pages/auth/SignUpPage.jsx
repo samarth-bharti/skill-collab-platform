@@ -1,7 +1,10 @@
+// src/pages/auth/SignUpPage.jsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../hooks/useAuth';
+// Make sure this import path points to your AuthContext file
+import { useAuth } from '../../contexts/AuthContext'; 
 
 export default function SignUpPage() {
     const [formData, setFormData] = useState({
@@ -24,7 +27,6 @@ export default function SignUpPage() {
             [name]: value
         }));
         
-        // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -49,6 +51,7 @@ export default function SignUpPage() {
         if (!formData.password) {
             newErrors.password = 'Password is required';
         } else if (formData.password.length < 8) {
+            // Appwrite's default minimum is 8 characters
             newErrors.password = 'Password must be at least 8 characters';
         }
         
@@ -60,6 +63,7 @@ export default function SignUpPage() {
         return Object.keys(newErrors).length === 0;
     };
 
+    // --- THIS IS THE CORRECTED PART ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -68,37 +72,28 @@ export default function SignUpPage() {
         setLoading(true);
         setErrors({});
         
-        console.log('🚀 Starting signup process...');
-        console.log('📝 Form data:', { 
-            fullName: formData.fullName, 
-            email: formData.email 
-        });
-        
         try {
-            const result = await signup(formData.email, formData.password, formData.fullName);
+            // The signup function will throw an error if it fails
+            await signup(formData.email, formData.password, formData.fullName);
             
-            console.log('📋 Signup result:', result);
-            
-            if (result.success) {
-                console.log('✅ Signup successful!');
-                setSuccess(true);
-                
-                // Show success message and redirect after 2 seconds
-                setTimeout(() => {
-                    navigate('/dashboard');
-                }, 2000);
-            } else {
-                console.error('❌ Signup failed:', result.error);
-                setErrors({ submit: result.error });
-            }
+            // If we get to this line, the signup was successful
+            setSuccess(true);
+            setTimeout(() => {
+                navigate('/dashboard'); // Redirect after 2 seconds
+            }, 2000);
+
         } catch (error) {
-            console.error('💥 Signup error:', error);
-            setErrors({ submit: error.message });
+            // The error from AuthContext will be caught here
+            setErrors({ submit: error.message || "An unknown error occurred." });
         } finally {
             setLoading(false);
         }
     };
+    // --- END OF CORRECTION ---
 
+
+    // The rest of your component's JSX remains exactly the same.
+    // It's already set up correctly to handle the success and error states.
     if (success) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
@@ -127,7 +122,6 @@ export default function SignUpPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="max-w-md w-full mx-4"
             >
-                {/* Logo and Title */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <div className="w-8 h-8 bg-green-500 rounded-lg"></div>
@@ -136,7 +130,6 @@ export default function SignUpPage() {
                     <p className="text-gray-400">Empower your projects, Simplify your Success!</p>
                 </div>
 
-                {/* Form */}
                 <motion.div
                     className="bg-black/40 backdrop-blur-xl rounded-3xl p-8 border border-green-500/20"
                 >

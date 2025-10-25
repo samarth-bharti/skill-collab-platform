@@ -1,7 +1,10 @@
+// src/pages/auth/LoginPage.jsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../hooks/useAuth';
+// Ensure this import path points to your AuthContext file
+import { useAuth } from '../../contexts/AuthContext'; 
 
 export default function LoginPage() {
     const [formData, setFormData] = useState({
@@ -21,7 +24,6 @@ export default function LoginPage() {
             [name]: value
         }));
         
-        // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -47,37 +49,36 @@ export default function LoginPage() {
         return Object.keys(newErrors).length === 0;
     };
 
+    // --- THIS IS THE CORRECTED PART ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!validateForm()) return;
         
         setLoading(true);
-        setErrors({});
-        
-        console.log('🚀 Starting login process...');
-        console.log('📝 Login email:', formData.email);
+        setErrors({}); // Clear previous errors
         
         try {
-            const result = await login(formData.email, formData.password);
+            // The login function from AuthContext will:
+            // 1. Return the user object on success
+            // 2. Throw an error on failure
+            await login(formData.email, formData.password);
             
-            console.log('📋 Login result:', result);
-            
-            if (result.success) {
-                console.log('✅ Login successful!');
-                navigate('/dashboard');
-            } else {
-                console.error('❌ Login failed:', result.error);
-                setErrors({ submit: result.error });
-            }
+            // If we get here, login was successful
+            navigate('/dashboard');
+
         } catch (error) {
-            console.error('💥 Login error:', error);
-            setErrors({ submit: error.message });
+            // The error from AuthContext will be caught here
+            // Appwrite provides a descriptive 'message' on the error object
+            setErrors({ submit: error.message || "Invalid email or password." });
         } finally {
             setLoading(false);
         }
     };
+    // --- END OF CORRECTION ---
 
+    
+    // The rest of your component's JSX is already perfect.
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
             <motion.div
@@ -85,7 +86,6 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="max-w-md w-full mx-4"
             >
-                {/* Logo and Title */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <div className="w-8 h-8 bg-green-500 rounded-lg"></div>
@@ -94,12 +94,10 @@ export default function LoginPage() {
                     <p className="text-gray-400">Unlock your Progress - Securely Access Your Project Hub</p>
                 </div>
 
-                {/* Form */}
                 <motion.div
                     className="bg-black/40 backdrop-blur-xl rounded-3xl p-8 border border-green-500/20"
                 >
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                 Email Address
@@ -121,7 +119,6 @@ export default function LoginPage() {
                             )}
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                 Password
@@ -143,14 +140,12 @@ export default function LoginPage() {
                             )}
                         </div>
 
-                        {/* Submit Error */}
                         {errors.submit && (
                             <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl">
                                 <p className="text-red-400 text-sm">{errors.submit}</p>
                             </div>
                         )}
 
-                        {/* Submit Button */}
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -162,14 +157,13 @@ export default function LoginPage() {
                         </motion.button>
                     </form>
 
-                    {/* Forgot Password */}
                     <div className="mt-4 text-center">
-                        <Link to="/forgot-password" className="text-green-400 hover:text-green-300 text-sm">
+                        <Link to="/forgot-password" // You may want to create this page later
+                            className="text-green-400 hover:text-green-300 text-sm">
                             Forgot your password?
                         </Link>
                     </div>
 
-                    {/* Signup Link */}
                     <p className="mt-6 text-center text-gray-400">
                         Don't have an account?{' '}
                         <Link to="/signup" className="text-green-400 hover:text-green-300 font-medium">

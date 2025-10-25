@@ -1,135 +1,102 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { account, ID } from '../lib/appwrite';
-import { getUserProfile, createUserProfile } from '../lib/api';
+// src/contexts/AuthContext.jsx
 
-export const AuthContext = createContext();
+import React, { createContext, useContext, useEffect, useState } from "react";
+// Import the Appwrite account service we created
+import { account } from "../lib/appwrite";
+import { ID } from "appwrite";
 
-export function useAuth() {
-    return useContext(AuthContext);
+// 1. Create the context
+export const AuthContext = createContext(null);
+
+// 2. Create the provider component
+export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 3. Check for a logged-in user on app load
+  useEffect(() => {
+    // This function runs once when the app loads
+    async function checkUserSession() {
+      try {
+        // 'account.get()' checks if there is an active session
+        const userAccount = await account.get();
+        setCurrentUser(userAccount);
+      } catch (error) {
+        // No user session found
+        setCurrentUser(null);
+      } finally {
+        // We're done loading
+        setIsLoading(false);
+      }
+    }
+
+    checkUserSession();
+  }, []);
+
+  // 4. Implement the login function
+  const login = async (email, password) => {
+    try {
+      // Create a session using Appwrite
+      await account.createEmailPasswordSession(email, password);
+      // Get the user data and update state
+      const userAccount = await account.get();
+      setCurrentUser(userAccount);
+      return userAccount;
+    } catch (error) {
+      console.error("Appwrite login error:", error);
+      throw error; // Re-throw the error so the login page can catch it
+    }
+  };
+
+  // 5. Implement the signup function
+  const signup = async (email, password, name) => {
+    try {
+      // Create a new user account
+      // Note: Appwrite uses ID.unique() to generate a safe, unique ID
+      await account.create(ID.unique(), email, password, name);
+      
+      // After creating the account, log the user in
+      const userAccount = await login(email, password);
+      return userAccount;
+    } catch (error) {
+      console.error("Appwrite signup error:", error);
+      throw error;
+    }
+  };
+
+  // 6. Implement the logout function
+  const logout = async () => {
+    try {
+      // Delete the current session
+      await account.deleteSession("current");
+      setCurrentUser(null);
+    } catch (error) {
+      console.error("Appwrite logout error:", error);
+      throw error;
+    }
+  };
+
+  // 7. Provide the context values to children
+  const authContextValue = {
+    currentUser,
+    isLoading,
+    login,
+    logout,
+    signup,
+  };
+
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {!isLoading && children}
+    </AuthContext.Provider>
+  );
 }
 
-export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [userProfile, setUserProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        checkUserStatus();
-    }, []);
-
-    const login = async (email, password) => {
-        try {
-            await account.createEmailPasswordSession(email, password);
-            const loggedInUser = await account.get();
-            setUser(loggedInUser);
-            
-            // Try to fetch user profile
-            await fetchUserProfile(loggedInUser.$id);
-            return { success: true };
-        } catch (error) {
-            console.error('Login error:', error);
-            return { success: false, error: error.message };
-        }
-    };
-
-    const signup = async (email, password, fullName) => {
-        try {
-            const newUser = await account.create(ID.unique(), email, password, fullName);
-            console.log('User created:', newUser);
-            
-            // Login the user
-            await login(email, password);
-            
-            // Create user profile in database
-            try {
-                await createUserProfile(newUser.$id, {
-                    fullName,
-                    email,
-                    profilePicture: ''
-                });
-                console.log('User profile created successfully');
-            } catch (profileError) {
-                console.error('Error creating user profile:', profileError);
-                // Don't fail signup if profile creation fails
-            }
-            
-            return { success: true };
-        } catch (error) {
-            console.error('Signup error:', error);
-            return { success: false, error: error.message };
-        }
-    };
-
-    const logout = async () => {
-        try {
-            await account.deleteSession('current');
-            setUser(null);
-            setUserProfile(null);
-            console.log('User logged out successfully');
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Clear local state even if logout fails
-            setUser(null);
-            setUserProfile(null);
-        }
-    };
-
-    const checkUserStatus = async () => {
-        try {
-            console.log('Checking user authentication status...');
-            const loggedInUser = await account.get();
-            console.log('User is authenticated:', loggedInUser);
-            setUser(loggedInUser);
-            
-            // Try to fetch user profile
-            await fetchUserProfile(loggedInUser.$id);
-        } catch (error) {
-            console.log('No authenticated user found:', error.message);
-            setUser(null);
-            setUserProfile(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchUserProfile = async (userId) => {
-        try {
-            console.log('Fetching user profile for:', userId);
-            const profile = await getUserProfile(userId);
-            setUserProfile(profile);
-            console.log('User profile loaded:', profile);
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-            // Don't set userProfile to null here, just log the error
-        }
-    };
-
-    const updateProfile = async (profileData) => {
-        try {
-            const updatedProfile = await updateUserProfile(user.$id, profileData);
-            setUserProfile(updatedProfile);
-            return updatedProfile;
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            throw error;
-        }
-    };
-
-    const value = {
-        user,
-        userProfile,
-        loading,
-        isLoggedIn: !!user,
-        login,
-        logout,
-        signup,
-        updateProfile,
-        fetchUserProfile
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+// 8. Create the custom hook for easy access
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === null) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }

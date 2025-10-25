@@ -1,16 +1,67 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
-export default function Logo({ size = 'large' }) {
-    return (
-        <div className="flex items-center">
-            <Link to="/" className="flex items-center cursor-pointer">
-                <div className="relative">
-                    <div className={`bg-gray-200 rounded-full ${size === 'large' ? 'w-20 h-20 md:w-28 md:h-28' : 'w-16 h-16'}`}></div>
-                    <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-zinc-900 rounded-full ${size === 'large' ? 'w-8 h-10 md:w-10 md:h-12' : 'w-6 h-8'}`}></div>
-                </div>
-                <h1 className={`font-bold text-white ml-4 font-poppins ${size === 'large' ? 'text-4xl md:text-6xl' : 'text-3xl'}`}>AgileAtlas</h1>
-            </Link>
-        </div>
-    );
+export default function Logo({
+  size = "large",        // "small" | "medium" | "large" | "xl"
+  className = "",
+  showText = false       // set false to hide typography
+}) {
+  const primary = "/common/logo.png";
+  const secondary = "/common/logo.svg";
+  const [src, setSrc] = useState(primary);
+  const [triedSecondary, setTriedSecondary] = useState(false);
+
+  const handleError = () => {
+    if (!triedSecondary && src !== secondary) {
+      setSrc(secondary);
+      setTriedSecondary(true);
+      return;
+    }
+    setSrc(null);
+  };
+
+  const sizePx = {
+    small: 32,
+    medium: 48,
+    large: 64,
+    xl: 120
+  }[size] || 64;
+
+  // inline styles to absolutely enforce dimensions (override parent CSS)
+  const forcedStyle = {
+    width: `${sizePx}px`,
+    height: `${sizePx}px`,
+    minWidth: `${sizePx}px`,
+    minHeight: `${sizePx}px`,
+    maxWidth: `${sizePx}px`,
+    maxHeight: `${sizePx}px`,
+    display: "block",
+    objectFit: "contain",
+    flexShrink: 0
+  };
+
+  return (
+    <Link to="/" className={`flex items-center ${className}`}>
+      {src ? (
+        <img
+          src={src}
+          alt="AgileAtlas"
+          onError={handleError}
+          style={forcedStyle}
+        />
+      ) : (
+        <svg
+          viewBox="0 0 64 64"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="AgileAtlas"
+          style={forcedStyle}
+        >
+          <rect width="64" height="64" rx="12" fill="#0f172a" />
+          <text x="50%" y="55%" fill="#10b981" fontSize="20" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">AA</text>
+        </svg>
+      )}
+      {showText && <span className="ml-3 font-bold text-white">AgileAtlas</span>}
+    </Link>
+  );
 }
