@@ -23,218 +23,32 @@ import {
     HardDrive, Award, GitBranch, Code, BookOpen, UserCheck
 } from 'lucide-react';
 
-// Skill-Based Collaboration Platform Mock Data
-const mockProjects = [
-    {
-        id: 1,
-        name: "AI-Powered Web App",
-        progress: 78,
-        status: "Active",
-        members: 4,
-        budget: 25000,
-        deadline: "2025-12-15",
-        requiredSkills: ["React", "Python", "Machine Learning", "UI/UX"],
-        skillsVerified: 85,
-        type: "Full-Stack Development",
-        priority: "high",
-        health: "excellent",
-        tasks: 24
-    },
-    {
-        id: 2,
-        name: "Mobile E-commerce Platform",
-        progress: 45,
-        status: "Recruiting",
-        members: 2,
-        budget: 18000,
-        deadline: "2025-11-30",
-        requiredSkills: ["React Native", "Node.js", "MongoDB", "Payment APIs"],
-        skillsVerified: 60,
-        type: "Mobile Development",
-        priority: "medium",
-        health: "good",
-        tasks: 18
-    },
-    {
-        id: 3,
-        name: "Blockchain Voting System",
-        progress: 92,
-        status: "Active",
-        members: 6,
-        budget: 42000,
-        deadline: "2025-10-20",
-        requiredSkills: ["Solidity", "Web3", "Smart Contracts", "Security"],
-        skillsVerified: 95,
-        type: "Blockchain",
-        priority: "critical",
-        health: "excellent",
-        tasks: 32
-    }
-];
+import { databases, DATABASE_ID, PROJECTS_COLLECTION_ID } from '../../lib/appwrite';
 
-const mockTasks = [
-    {
-        id: 1,
-        text: "Design user authentication system",
-        completed: false,
-        priority: "high",
-        project: "AI-Powered Web App",
-        skillRequired: "UI/UX Design",
-        verificationLevel: "Expert",
-        assignee: "Sarah Chen",
-        endorsements: 12,
-        hours: 40,
-        category: "design"
-    },
-    {
-        id: 2,
-        text: "Implement machine learning model",
-        completed: true,
-        priority: "critical",
-        project: "AI-Powered Web App",
-        skillRequired: "Machine Learning",
-        verificationLevel: "Advanced",
-        assignee: "David Kumar",
-        endorsements: 28,
-        hours: 60,
-        category: "development"
-    },
-    {
-        id: 3,
-        text: "Set up smart contract deployment",
-        completed: false,
-        priority: "medium",
-        project: "Blockchain Voting System",
-        skillRequired: "Solidity",
-        verificationLevel: "Intermediate",
-        assignee: "Alex Morgan",
-        endorsements: 8,
-        hours: 24,
-        category: "blockchain"
-    },
-    {
-        id: 4,
-        text: "Security audit and penetration testing",
-        completed: false,
-        priority: "critical",
-        project: "Blockchain Voting System",
-        skillRequired: "Cybersecurity",
-        verificationLevel: "Expert",
-        assignee: "Lisa Rodriguez",
-        endorsements: 34,
-        hours: 32,
-        category: "security"
-    }
-];
 
-const mockTeamMembers = [
-    {
-        id: 1,
-        name: "Sarah Chen",
-        role: "Full-Stack Developer",
-        status: "online",
-        avatar: "SC",
-        projects: 3,
-        tasks: 8,
-        skillsVerified: 12,
-        githubScore: 98,
-        endorsements: 45,
-        topSkills: ["React", "Node.js", "Python"]
-    },
-    {
-        id: 2,
-        name: "David Kumar",
-        role: "ML Engineer",
-        status: "online",
-        avatar: "DK",
-        projects: 2,
-        tasks: 5,
-        skillsVerified: 8,
-        githubScore: 95,
-        endorsements: 28,
-        topSkills: ["Python", "TensorFlow", "Data Science"]
-    },
-    {
-        id: 3,
-        name: "Alex Morgan",
-        role: "Blockchain Developer",
-        status: "away",
-        avatar: "AM",
-        projects: 1,
-        tasks: 4,
-        skillsVerified: 6,
-        githubScore: 87,
-        endorsements: 15,
-        topSkills: ["Solidity", "Web3", "Smart Contracts"]
-    },
-    {
-        id: 4,
-        name: "Lisa Rodriguez",
-        role: "Security Specialist",
-        status: "online",
-        avatar: "LR",
-        projects: 2,
-        tasks: 6,
-        skillsVerified: 10,
-        githubScore: 92,
-        endorsements: 34,
-        topSkills: ["Cybersecurity", "Penetration Testing", "Audit"]
-    }
-];
+const [projects, setProjects] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
 
-const mockSkillVerifications = [
-    { skill: "React", level: "Expert", verified: true, method: "GitHub Analysis", score: 95 },
-    { skill: "Python", level: "Advanced", verified: true, method: "Coding Challenge", score: 88 },
-    { skill: "Machine Learning", level: "Intermediate", verified: true, method: "Peer Endorsement", score: 82 },
-    { skill: "UI/UX Design", level: "Advanced", verified: false, method: "Portfolio Review", score: 0 },
-    { skill: "Blockchain", level: "Beginner", verified: true, method: "Quiz Assessment", score: 75 }
-];
+useEffect(() => {
+    const fetchProjects = async () => {
+        try {
+            const response = await databases.listDocuments(
+                DATABASE_ID,
+                PROJECTS_COLLECTION_ID
+            );
+            setProjects(response.documents);
+            setLoading(false);
+        } catch (error) {
+            setError(error.message);
+            setLoading(false);
+        }
+    };
 
-const mockTimeline = [
-    { id: 1, user: "Sarah Chen", action: "endorsed skill", target: "React Development", time: "15 min ago", type: "endorsement", avatar: "SC" },
-    { id: 2, user: "David Kumar", action: "completed verification for", target: "Machine Learning Advanced", time: "1 hour ago", type: "verification", avatar: "DK" },
-    { id: 3, user: "Lisa Rodriguez", action: "joined collaboration on", target: "Blockchain Voting System", time: "2 hours ago", type: "collaboration", avatar: "LR" },
-    { id: 4, user: "Alex Morgan", action: "submitted portfolio for", target: "Solidity Expert Review", time: "4 hours ago", type: "portfolio", avatar: "AM" }
-];
+    fetchProjects();
+}, []);
 
-const mockNotifications = [
-    {
-        id: 1,
-        text: 'New skill endorsement received for React development',
-        time: '5 min ago',
-        unread: true,
-        type: 'endorsement'
-    },
-    {
-        id: 2,
-        text: 'Project "AI Web App" milestone completed',
-        time: '1 hour ago',
-        unread: true,
-        type: 'project'
-    },
-    {
-        id: 3,
-        text: 'New collaboration request from Blockchain team',
-        time: '2 hours ago',
-        unread: false,
-        type: 'collaboration'
-    },
-    {
-        id: 4,
-        text: 'Skill verification completed: Python Advanced',
-        time: '3 hours ago',
-        unread: false,
-        type: 'verification'
-    }
-];
 
-// Platform Metrics - Skill-focused
-const mockMetrics = {
-    skillsVerified: { current: 24, target: 30, growth: 12.5, trend: [18, 20, 22, 23, 24] },
-    projectsActive: { current: 8, target: 10, growth: 25.0, trend: [6, 6, 7, 7, 8] },
-    endorsements: { current: 156, target: 200, growth: 18.3, trend: [120, 130, 145, 150, 156] },
-    collaborators: { current: 47, target: 60, growth: 15.2, trend: [35, 38, 42, 45, 47] }
-};
 
 // Advanced 3D Background with Skill-themed Elements
 function Advanced3DBackground() {
@@ -1071,13 +885,43 @@ export default function DashboardHomePage() {
     const [selectedProject, setSelectedProject] = useState(null);
     const [quickActionsOpen, setQuickActionsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [tasks, setTasks] = useState(mockTasks);
+    const [tasks, setTasks] = useState([]);
+const [teamMembers, setTeamMembers] = useState([]);
+const [skillVerifications, setSkillVerifications] = useState([]);
+const [timeline, setTimeline] = useState([]);
+const [notifications, setNotifications] = useState([]);
+const [metrics, setMetrics] = useState(null);
+
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const [tasksResponse, teamMembersResponse, skillVerificationsResponse, timelineResponse, notificationsResponse, metricsResponse] = await Promise.all([
+                databases.listDocuments(DATABASE_ID, TASKS_COLLECTION_ID),
+                databases.listDocuments(DATABASE_ID, TEAM_MEMBERS_COLLECTION_ID),
+                databases.listDocuments(DATABASE_ID, SKILL_VERIFICATIONS_COLLECTION_ID),
+                databases.listDocuments(DATABASE_ID, TIMELINE_COLLECTION_ID),
+                databases.listDocuments(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID),
+                databases.listDocuments(DATABASE_ID, METRICS_COLLECTION_ID)
+            ]);
+            setTasks(tasksResponse.documents);
+            setTeamMembers(teamMembersResponse.documents);
+            setSkillVerifications(skillVerificationsResponse.documents);
+            setTimeline(timelineResponse.documents);
+            setNotifications(notificationsResponse.documents);
+            setMetrics(metricsResponse.documents[0]); // Assuming metrics is a single document
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    fetchData();
+}, []);
     const headerRef = useRef(null);
     
     // <-- 3. Create a map for efficient Project Name -> ID lookup
     const projectNameToIdMap = useMemo(() => 
-        new Map(mockProjects.map(p => [p.name, p.id])), 
-        [mockProjects]
+        new Map(projects.map(p => [p.name, p.id])), 
+        [projects]
     );
 
     const handleTaskUpdate = (taskId, completed) => {
@@ -1086,14 +930,20 @@ export default function DashboardHomePage() {
         ));
     };
     
-    const unreadNotifications = mockNotifications.filter(n => n.unread).length;
+    const unreadNotifications = notifications.filter(n => n.unread).length;
 
     const floatingActions = [
         { icon: Plus, label: 'New Project', color: 'bg-gradient-to-r from-green-500 to-emerald-400 text-black' },
         { icon: Award, label: 'Verify Skills', color: 'bg-gradient-to-r from-purple-600 to-purple-500 text-white' },
         { icon: Users, label: 'Find Collaborators', color: 'bg-gradient-to-r from-blue-600 to-blue-500 text-white', path: '/dashboard/discover' },
         { icon: Star, label: 'Give Endorsement', color: 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-white' }
-    ];
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error: Failed to edit, Expected 1 occurrence but found 11 for old_string in file: /home/shivamchourey/skill-collab-platform/client/src/pages/dashboard/DashboardHomePage.jsx</div>;
+    }
 
     return (
         <div className="min-h-screen bg-black relative overflow-hidden">
@@ -1193,55 +1043,59 @@ export default function DashboardHomePage() {
                 
                 {/* Skill-focused KPI Metrics Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                    <SkillMetricCard
-                        title="Skills Verified"
-                        value={mockMetrics.skillsVerified.current}
-                        target={mockMetrics.skillsVerified.target}
-                        growth={mockMetrics.skillsVerified.growth}
-                        trend={mockMetrics.skillsVerified.trend}
-                        icon={Award}
-                        color="green-500"
-                        delay={0}
-                    />
-                    <SkillMetricCard
-                        title="Active Projects"
-                        value={mockMetrics.projectsActive.current}
-                        target={mockMetrics.projectsActive.target}
-                        growth={mockMetrics.projectsActive.growth}
-                        trend={mockMetrics.projectsActive.trend}
-                        icon={Briefcase}
-                        color="blue-500"
-                        delay={1}
-                        onClick={() => navigate('/dashboard/projects')} // <-- Navigate to projects page
-                    />
-                    <SkillMetricCard
-                        title="Endorsements Received"
-                        value={mockMetrics.endorsements.current}
-                        target={mockMetrics.endorsements.target}
-                        growth={mockMetrics.endorsements.growth}
-                        trend={mockMetrics.endorsements.trend}
-                        icon={Star}
-                        color="yellow-500"
-                        delay={2}
-                    />
-                    <SkillMetricCard
-                        title="Active Collaborators"
-                        value={mockMetrics.collaborators.current}
-                        target={mockMetrics.collaborators.target}
-                        growth={mockMetrics.collaborators.growth}
-                        trend={mockMetrics.collaborators.trend}
-                        icon={Users}
-                        color="purple-500"
-                        delay={3}
-                        onClick={() => navigate('/dashboard/discover')} // <-- Navigate to discover page
-                    />
+                    {metrics && (
+                        <>
+                            <SkillMetricCard
+                                title="Skills Verified"
+                                value={metrics.skillsVerified.current}
+                                target={metrics.skillsVerified.target}
+                                growth={metrics.skillsVerified.growth}
+                                trend={metrics.skillsVerified.trend}
+                                icon={Award}
+                                color="green-500"
+                                delay={0}
+                            />
+                            <SkillMetricCard
+                                title="Active Projects"
+                                value={metrics.projectsActive.current}
+                                target={metrics.projectsActive.target}
+                                growth={metrics.projectsActive.growth}
+                                trend={metrics.projectsActive.trend}
+                                icon={Briefcase}
+                                color="blue-500"
+                                delay={1}
+                                onClick={() => navigate('/dashboard/projects')} // <-- Navigate to projects page
+                            />
+                            <SkillMetricCard
+                                title="Endorsements Received"
+                                value={metrics.endorsements.current}
+                                target={metrics.endorsements.target}
+                                growth={metrics.endorsements.growth}
+                                trend={metrics.endorsements.trend}
+                                icon={Star}
+                                color="yellow-500"
+                                delay={2}
+                            />
+                            <SkillMetricCard
+                                title="Active Collaborators"
+                                value={metrics.collaborators.current}
+                                target={metrics.collaborators.target}
+                                growth={metrics.collaborators.growth}
+                                trend={metrics.collaborators.trend}
+                                icon={Users}
+                                color="purple-500"
+                                delay={3}
+                                onClick={() => navigate('/dashboard/discover')} // <-- Navigate to discover page
+                            />
+                        </>
+                    )}
                 </div>
                 
                 {/* Main Dashboard Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                     {/* Left Section - Skills & Tasks */}
                     <div className="xl:col-span-4 space-y-6">
-                        <SkillVerificationWidget skills={mockSkillVerifications} />
+                        <SkillVerificationWidget skills={skillVerifications} />
                         <SkillQuickActionsWidget navigate={navigate} />
                     </div>
                     
@@ -1262,12 +1116,12 @@ export default function DashboardHomePage() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Skill-Based Projects</h3>
-                                    <p className="text-xs text-gray-400">{mockProjects.length} active collaborations</p>
+                                    <p className="text-xs text-gray-400">{projects.length} active collaborations</p>
                                 </div>
                             </div>
                             
                             <div className="grid grid-cols-1 gap-4">
-                                {mockProjects.map((project, index) => (
+                                {projects.map((project, index) => (
                                     <motion.div
                                         key={project.id}
                                         className="group p-4 rounded-xl bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-gray-700 hover:border-green-500/50 transition-all duration-300 cursor-pointer"
@@ -1347,7 +1201,7 @@ export default function DashboardHomePage() {
                     
                     {/* Right Section - Team & Activity */}
                     <div className="xl:col-span-3 space-y-6">
-                        <SkillTeamActivityWidget teamMembers={mockTeamMembers} timeline={mockTimeline} navigate={navigate} projectNameToIdMap={projectNameToIdMap} />
+                        <SkillTeamActivityWidget teamMembers={teamMembers} timeline={timeline} navigate={navigate} projectNameToIdMap={projectNameToIdMap} />
                         
                         {/* Enhanced Notifications with Skill Focus */}
                         <motion.div
@@ -1368,7 +1222,7 @@ export default function DashboardHomePage() {
                             
                             <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
                                 <AnimatePresence>
-                                    {mockNotifications.map((notification, index) => {
+                                    {notifications.map((notification, index) => {
                                         const getNotificationColor = (type) => ({
                                             endorsement: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400',
                                             project: 'border-green-500/30 bg-green-500/10 text-green-400',
