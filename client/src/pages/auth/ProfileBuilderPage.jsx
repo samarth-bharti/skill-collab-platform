@@ -1,15 +1,9 @@
 // src/pages/auth/ProfileBuilderPage.jsx
 import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext'; // CORRECTED IMPORT PATH
-import Logo from '../../components/common/Logo';
-import FormInput from '../../components/common/FormInput';
 import { uploadProfilePicture, createUserProfile } from '../../lib/api';
 
-// --- SVG ICONS (omitted for brevity, keep your existing SVG components) ---
-const GitHubIcon = () => ( <svg>...</svg> );
-const LinkedInIcon = () => ( <svg>...</svg> );
-const XIcon = () => ( <svg>...</svg> );
 const GlobalStyles = () => ( <style>{`...`}</style> );
 
 

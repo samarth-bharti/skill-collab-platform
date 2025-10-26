@@ -1,14 +1,16 @@
 // src/lib/appwrite.js
-import { Client, Account, Databases, Storage } from 'appwrite';
+
+import { Client, Account, Databases, Storage, ID, Query } from 'appwrite';
 
 // Initialize the Appwrite client
 const client = new Client();
 
 client
-  .setEndpoint('https://fra.cloud.appwrite.io/v1')
-  .setProject('68d698a5003a391492a8');
+  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
+  .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
 
-// Export the services you'll use
+// Export Appwrite services
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
+export { ID, Query };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Briefcase, Compass, MessageSquare, Settings, HelpCircle, User, LogOut } from 'lucide-react';
+import { Home, Briefcase, Compass, MessageSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
 
 const navLinks = [
     { name: 'Home', path: '/dashboard', icon: Home },

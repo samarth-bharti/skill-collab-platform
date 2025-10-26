@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
       try {
         await confirmPasswordReset(userId, secret, formData.password);
         setIsSuccess(true);
-      } catch (error) {
+      } catch {
         setErrors({ general: "Failed to reset password. The link may have expired." });
       } finally {
         setIsSubmitting(false);

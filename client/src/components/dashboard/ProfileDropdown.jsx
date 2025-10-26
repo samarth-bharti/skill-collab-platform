@@ -18,6 +18,14 @@ export default function ProfileDropdown() {
                         <p className="text-xs text-gray-400">{user.role}</p>
                     </div>
                     <Link to="/dashboard/settings" onClick={() => setIsOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-zinc-700">Settings</Link>
+                    <li>
+                        <Link
+                            to="/profile/edit"
+                            className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-800"
+                        >
+                            Edit profile
+                        </Link>
+                    </li>
                     <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-zinc-700">Logout</button>
                 </div>
             )}

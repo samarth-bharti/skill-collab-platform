@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Briefcase, Search, Filter, DollarSign, UserCheck, Grid, List } from 'lucide-react';
+import { Briefcase, Search, Filter, DollarSign, UserCheck } from 'lucide-react';
 
 // Using the same mock data structure from your DashboardHomePage
 const mockProjects = [

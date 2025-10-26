@@ -1,7 +1,7 @@
 import React from 'react';
 import { mockNotifications } from '../../api/mockData';
 
-export default function NotificationsDropdown({ setIsOpen }) {
+export default function NotificationsDropdown() {
     return (
         <div className="absolute right-0 mt-2 w-72 bg-[#303030] rounded-lg shadow-lg py-1 z-50">
             <div className="px-4 py-2 border-b border-zinc-600">

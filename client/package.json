@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext .js,.jsx",
+    "postinstall": "mkdir -p public && cp -f SKLBCLBP/public/_redirects public/_redirects || true",
+    "postbuild": "mkdir -p dist && cp -f public/_redirects dist/_redirects || true"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.13",
     "@react-three/fiber": "^8.15.11",
+    "appwrite": "^14.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.23.12",
+    "framer-motion": "^12.23.22",
     "gsap": "^3.12.2",
     "lucide-react": "^0.542.0",
     "react": "^18.3.1",
@@ -23,15 +27,20 @@
     "swiper": "^11.2.10",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.158.0",
+    "three": "^0.159.0",
     "three-mesh-bvh": "^0.8.0"
   },
   "devDependencies": {
-    "@types/three": "^0.158.3",
+    "@eslint/js": "^9.38.0",
+    "@types/three": "^0.159.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
+    "eslint": "^9.38.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.4.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.10",
-    "vite": "^5.3.1"
+    "vite": "^7.1.12"
   }
 }

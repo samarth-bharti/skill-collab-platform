@@ -1,27 +1,15 @@
 // SettingsPage.jsx - COMPLETE SKILL-BASED COLLABORATION PLATFORM SETTINGS
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { 
-    Float, Environment, Stars, Cloud, Box, Sphere, MeshDistortMaterial
+    Float, Environment, Stars, Box, MeshDistortMaterial
 } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as THREE from 'three';
+
 
 // FIXED LUCIDE IMPORTS
 import { 
-    User, Shield, Bell, Globe, Palette, Database, Zap, Eye, 
-    Lock, Key, Mail, Phone, MapPin, Calendar, Clock, Camera,
-    Mic, Video, Download, Upload, Trash2, Edit, Save, Send,
-    Share2, Heart, Star, Award, Users, Target, Briefcase,
-    Settings, Search, Filter, Grid, List, ChevronRight,
-    ChevronDown, MoreHorizontal, X, Check, AlertTriangle,
-    Info, HelpCircle, RefreshCw, Monitor, Smartphone, Tablet,
-    Wifi, Bluetooth, Volume2, Moon, Sun, Contrast, Type,
-    Languages, DollarSign, CreditCard, FileText, BookOpen,
-    Code, GitBranch, Github, Linkedin, Twitter, Facebook,
-    Instagram, Youtube, Link, ExternalLink, Copy, Archive,
-    LogOut, AlertCircle, CheckCircle, Minus, Plus,
-    Activity, MessageSquare, HardDrive
+    User, Shield, Bell, Palette, Award, Zap, ChevronRight, Mail, Github, Linkedin, Link, Search, Save
 } from 'lucide-react';
 
 // Settings Categories
@@ -435,7 +423,7 @@ const IntegrationCard = ({ integration, onToggle }) => {
 };
 
 // Integrations Settings Component
-const IntegrationsSettings = ({ settings, onSettingsChange }) => {
+const IntegrationsSettings = ({ settings }) => {
     const handleIntegrationToggle = (service) => {
         console.log(`Toggling integration for ${service}`);
     };

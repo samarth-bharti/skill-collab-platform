@@ -207,7 +207,10 @@ const Navigation = React.memo(({ isLoggedIn, onNavigate }) => {
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-4">
         <div className="flex justify-between items-center">
           <div className="transform transition-transform duration-300 hover:scale-105">
-            <Logo size="small" />
+            {/* Larger logo - increased size significantly */}
+            <div className="text-4xl md:text-5xl">
+              <Logo showText={false} />
+            </div>
           </div>
           
           <div className="flex items-center space-x-4" role="group" aria-label="Account actions">
@@ -252,7 +255,7 @@ const Navigation = React.memo(({ isLoggedIn, onNavigate }) => {
 
 Navigation.displayName = 'Navigation';
 
-// Features Section with clean icons
+// Enhanced Features Section with clean icons
 const FeaturesSection = React.memo(() => {
   const [visibleFeatures, setVisibleFeatures] = useState([]);
   const featuresRef = useRef(null);
@@ -392,10 +395,12 @@ const Footer = React.memo(() => {
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="md:col-span-2">
-            <Logo size="medium" />
-            <p className="mt-4 text-white/70 max-w-md">
-              Building the future of collaborative development, one project at a time.
-            </p>
+            <div className="flex items-center gap-6">
+              {/* Larger logo in footer */}
+              <div className="text-4xl md:text-5xl">
+                <Logo showText={false} />
+              </div>
+            </div>
           </div>
           
           <div>
@@ -458,9 +463,9 @@ Footer.displayName = 'Footer';
 // ===========================================
 // MAIN COMPONENT
 // ===========================================
-
 export default function LandingPage() {
-  const { isLoggedIn } = useAuth();
+  const { currentUser } = useAuth();
+  const isLoggedIn = !!currentUser; // This creates a true/false boolean
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);

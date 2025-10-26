@@ -4,7 +4,7 @@ import { MessageSquare, HelpCircle, BookOpen, Send, ChevronDown } from "lucide-r
 import { useAuth } from "../../hooks/useAuth";
 
 export default function SupportPage() {
-  const { user } = useAuth();
+  useAuth();
 
   const [activeTab, setActiveTab] = useState("chat");
   const [chatMessages, setChatMessages] = useState([

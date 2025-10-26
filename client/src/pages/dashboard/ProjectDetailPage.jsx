@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Briefcase, ArrowLeft, Users, Target, DollarSign, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, CheckCircle, Clock } from 'lucide-react';
 
 // Assuming mock data is available or fetched from an API
 const mockProjects = [
