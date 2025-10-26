@@ -1,5 +1,6 @@
 // SettingsPage.jsx - COMPLETE SKILL-BASED COLLABORATION PLATFORM SETTINGS
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { 
     Float, Environment, Stars, Cloud, Box, Sphere, MeshDistortMaterial
@@ -232,6 +233,7 @@ const SettingsSection = ({ title, children, icon: Icon }) => {
 
 // Profile Settings Component
 const ProfileSettings = ({ settings, onSettingsChange }) => {
+    const navigate = useNavigate();
     return (
         <div className="space-y-6">
             <SettingsSection title="Personal Information" icon={User}>
@@ -275,6 +277,12 @@ const ProfileSettings = ({ settings, onSettingsChange }) => {
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                     />
                 </div>
+                <button 
+                    onClick={() => navigate('/profile/edit')}
+                    className="mt-4 bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-xl font-medium transition-all"
+                >
+                    Edit Profile
+                </button>
             </SettingsSection>
         </div>
     );
