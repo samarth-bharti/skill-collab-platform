@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, HelpCircle, BookOpen, Send, ChevronDown } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import axios from "axios";
 
 export default function SupportPage() {
   useAuth();
@@ -11,15 +12,48 @@ export default function SupportPage() {
     { id: 1, sender: "agent", text: "Hi! How can I assist you today?", timestamp: Date.now() },
   ]);
   const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const messageEndRef = useRef(null);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
-    setChatMessages((msgs) => [
-      ...msgs,
-      { id: Date.now(), sender: "user", text: input.trim(), timestamp: Date.now() },
-    ]);
+
+    const userMessage = {
+      id: Date.now(),
+      sender: "user",
+      text: input.trim(),
+      timestamp: Date.now(),
+    };
+
+    setChatMessages((msgs) => [...msgs, userMessage]);
     setInput("");
+    setIsTyping(true);
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/chat", {
+        message: input.trim(),
+      });
+
+      const botMessage = {
+        id: Date.now() + 1,
+        sender: "agent",
+        text: response.data.response,
+        timestamp: Date.now(),
+      };
+
+      setChatMessages((msgs) => [...msgs, botMessage]);
+    } catch (error) {
+      console.error("Error fetching bot response:", error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        sender: "agent",
+        text: "Sorry, I'm having trouble connecting. Please try again later.",
+        timestamp: Date.now(),
+      };
+      setChatMessages((msgs) => [...msgs, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   useEffect(() => {
@@ -99,6 +133,18 @@ export default function SupportPage() {
                   </div>
                 </motion.div>
               ))}
+              {isTyping && (
+                <motion.div
+                  className="flex mr-auto justify-start"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="rounded-xl px-5 py-4 break-words whitespace-pre-wrap bg-gray-700 text-white shadow-md rounded-bl-none">
+                    Typing...
+                  </div>
+                </motion.div>
+              )}
               <div ref={messageEndRef} />
             </div>
 

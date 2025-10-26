@@ -79,7 +79,7 @@ export default function SignUpPage() {
             // If we get to this line, the signup was successful
             setSuccess(true);
             setTimeout(() => {
-                navigate('/dashboard'); // Redirect after 2 seconds
+                navigate('/profile-builder'); // Redirect after 2 seconds
             }, 2000);
 
         } catch (error) {

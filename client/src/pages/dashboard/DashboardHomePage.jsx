@@ -1,20 +1,25 @@
 // DashboardHomePage.jsx - SKILL COLLABORATION PLATFORM WITH ENTERPRISE VISUALS
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom'; // <-- 1. IMPORT ROUTING HOOK
-import { useAuth } from '../../contexts/AuthContext'; // <-- IMPORT useAuth
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
-    Box, Sphere, Float, Environment,
-    Plane, MeshDistortMaterial, Points,
-    PointMaterial, Stars, Cloud
+    OrbitControls, Box, Sphere, Float, Environment,
+    ContactShadows, Plane, MeshDistortMaterial, Html, Points,
+    PointMaterial, PresentationControls, Stars, Cloud
 } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as THREE from 'three';
 
 // Skill-Based Platform Icons
 import {
-    Plus, Search, Bell, LogOut, Settings, User,
-    Activity, Zap, Target, Clock, Users, ArrowUp, ArrowDown, Play, Eye, Award, GitBranch, Code, BookOpen, UserCheck, Briefcase, Star, DollarSign
+    Plus, Search, Bell, Filter, Calendar, TrendingUp, BarChart3, Settings, User,
+    Maximize, Compass, Activity, Zap, Target, Clock, Users, CheckCircle, AlertCircle,
+    ArrowUp, ArrowDown, Play, Pause, RotateCw, Eye, Database, Cpu, Globe, Shield,
+    DollarSign, Briefcase, Mail, Phone, MapPin, FileText, Download, Upload, Trash2,
+    Edit, Save, Send, Share2, Heart, Star, ThumbsUp, MessageSquare, Video, Image,
+    Wifi, Battery, Signal, Volume2, Mic, Camera, Lock, Unlock, Key, AlertTriangle,
+    Info, HelpCircle, Menu, X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
+    RefreshCw, MoreHorizontal, MoreVertical, Grid, List, Layers, PieChart, LineChart,
+    HardDrive, Award, GitBranch, Code, BookOpen, UserCheck
 } from 'lucide-react';
 
 // Skill-Based Collaboration Platform Mock Data
@@ -341,67 +346,7 @@ function Advanced3DBackground() {
 // Enhanced Skill Metric Card Component - Now accepts an onClick prop for navigation
 const SkillMetricCard = ({ title, value, target, growth, trend, icon: Icon, color = "green-500", delay = 0, onClick }) => {
     const [animatedValue, setAnimatedValue] = useState(0);
-
-    // --- FIX FOR TAILWIND ---
-    // Tailwind needs full class names to be present, it cannot see string interpolation.
-    const colorClasses = {
-        "green-500": {
-            border: "border-green-500",
-            via: "via-green-500",
-            from: "from-green-500/20",
-            to: "to-green-500/10",
-            border30: "border-green-500/30",
-            text: "text-green-500",
-            bgGradient: "from-green-500",
-            bg: "bg-green-500",
-            hoverBorder: "hover:borderColor-green-500"
-        },
-        "blue-500": {
-            border: "border-blue-500",
-            via: "via-blue-500",
-            from: "from-blue-500/20",
-            to: "to-blue-500/10",
-            border30: "border-blue-500/30",
-            text: "text-blue-500",
-            bgGradient: "from-blue-500",
-            bg: "bg-blue-500",
-            hoverBorder: "hover:border-blue-500"
-        },
-        "yellow-500": {
-            border: "border-yellow-500",
-            via: "via-yellow-500",
-            from: "from-yellow-500/20",
-            to: "to-yellow-500/10",
-            border30: "border-yellow-500/30",
-            text: "text-yellow-500",
-            bgGradient: "from-yellow-500",
-            bg: "bg-yellow-500",
-            hoverBorder: "hover:border-yellow-500"
-        },
-        "purple-500": {
-            border: "border-purple-500",
-            via: "via-purple-500",
-            from: "from-purple-500/20",
-            to: "to-purple-500/10",
-            border30: "border-purple-500/30",
-            text: "text-purple-500",
-            bgGradient: "from-purple-500",
-            bg: "bg-purple-500",
-            hoverBorder: "hover:border-purple-500"
-        }
-    };
-
-    // Safelist for Tailwind JIT compiler
-    // border-green-500 via-green-500 from-green-500/20 to-green-500/10 border-green-500/30 text-green-500 from-green-500 bg-green-500 hover:border-green-500
-    // border-blue-500 via-blue-500 from-blue-500/20 to-blue-500/10 border-blue-500/30 text-blue-500 from-blue-500 bg-blue-500 hover:border-blue-500
-    // border-yellow-500 via-yellow-500 from-yellow-500/20 to-yellow-500/10 border-yellow-500/30 text-yellow-500 from-yellow-500 bg-yellow-500 hover:border-yellow-500
-    // border-purple-500 via-purple-500 from-purple-500/20 to-purple-500/10 border-purple-500/30 text-purple-500 from-purple-500 bg-purple-500 hover:border-purple-500
-    // to-emerald-400
-
-    const currentColors = colorClasses[color] || colorClasses["green-500"];
-    // --- END FIX ---
-
-
+    
     useEffect(() => {
         const timer = setTimeout(() => {
             const interval = setInterval(() => {
@@ -432,7 +377,7 @@ const SkillMetricCard = ({ title, value, target, growth, trend, icon: Icon, colo
             whileHover={{
                 scale: 1.02,
                 boxShadow: `0 20px 40px rgba(34, 197, 94, 0.2)`,
-                borderColor: 'rgb(34 197 94)' 
+                borderColor: `rgb(34 197 94)`
             }}
             whileTap={{ scale: 0.98 }}
             initial={{ opacity: 0, y: 20 }}
@@ -444,30 +389,30 @@ const SkillMetricCard = ({ title, value, target, growth, trend, icon: Icon, colo
             <div className="absolute inset-0 opacity-5">
                 <div className="grid grid-cols-8 grid-rows-6 h-full w-full">
                     {Array.from({ length: 48 }).map((_, i) => (
-                        <div key={i} className={`border ${currentColors.border}`} />
+                        <div key={i} className={`border border-${color}`} />
                     ))}
                 </div>
             </div>
             
             {/* Animated Background Glow */}
             <motion.div
-                className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent ${currentColors.via} to-transparent`}
+                className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-${color} to-transparent`}
                 animate={{ x: ['-100%', '100%'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
             
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${currentColors.from} ${currentColors.to} border ${currentColors.border30}`}>
-                        <Icon className={`w-6 h-6 ${currentColors.text}`} />
+                    <div className={`p-3 rounded-xl bg-gradient-to-br from-${color}/20 to-${color}/10 border border-${color}/30`}>
+                        <Icon className={`w-6 h-6 text-${color}`} />
                     </div>
                     <div className="text-right">
-                        <div className={`text-xs ${currentColors.text} font-medium`}>
+                        <div className={`text-xs text-${color} font-medium`}>
                             {growth >= 0 ? '+' : ''}{growth}%
                         </div>
                         <div className="flex items-center gap-1">
                             {growth >= 0 ?
-                                <ArrowUp className={`w-3 h-3 ${currentColors.text}`} /> :
+                                <ArrowUp className={`w-3 h-3 text-${color}`} /> :
                                 <ArrowDown className="w-3 h-3 text-red-400" />
                             }
                             <span className="text-xs text-gray-400">vs last week</span>
@@ -494,7 +439,7 @@ const SkillMetricCard = ({ title, value, target, growth, trend, icon: Icon, colo
                     </div>
                     <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
                         <motion.div
-                            className={`h-full bg-gradient-to-r ${currentColors.bgGradient} to-emerald-400 rounded-full`}
+                            className={`h-full bg-gradient-to-r from-${color} to-emerald-400 rounded-full`}
                             initial={{ width: '0%' }}
                             animate={{ width: `${progressPercentage}%` }}
                             transition={{ duration: 2, ease: "easeOut", delay: delay * 0.1 }}
@@ -507,7 +452,7 @@ const SkillMetricCard = ({ title, value, target, growth, trend, icon: Icon, colo
                     {trend.map((point, index) => (
                         <motion.div
                             key={index}
-                            className={`${currentColors.bg} rounded-sm flex-1 opacity-70`}
+                            className={`bg-${color} rounded-sm flex-1 opacity-70`}
                             initial={{ height: 0 }}
                             animate={{ height: `${(point / Math.max(...trend)) * 100}%` }}
                             transition={{ duration: 1, delay: (delay * 0.1) + (index * 0.1) }}
@@ -681,7 +626,7 @@ const SkillVerificationWidget = ({ skills }) => {
 // Enhanced Task Management with Skill Requirements - Now accepts navigate prop
 const SkillTaskManagementWidget = ({ tasks, onTaskUpdate, navigate, projectNameToIdMap }) => {
     const [filter, setFilter] = useState('all');
-    const [sortBy] = useState('priority');
+    const [sortBy, setSortBy] = useState('priority');
     
     const filteredTasks = tasks.filter(task => {
         if (filter === 'all') return true;
@@ -1119,21 +1064,16 @@ const SkillQuickActionsWidget = ({ navigate }) => {
 
 // Main Dashboard Component
 export default function DashboardHomePage() {
-    // --- START LOGOUT CHANGES ---
     const user = { id: 1, name: "Alex Johnson", role: "Full-Stack Developer" };
     
     const navigate = useNavigate(); // <-- 2. INITIALIZE NAVIGATE FUNCTION
-    const { logout } = useAuth(); // <-- GET LOGOUT FUNCTION
-    
+    const [selectedProject, setSelectedProject] = useState(null);
     const [quickActionsOpen, setQuickActionsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [tasks, setTasks] = useState(mockTasks);
-    const headerRef = useRef(null);
-    
-    // <-- 3. Create a map for efficient Project Name -> ID lookup
+
     const projectNameToIdMap = useMemo(() => 
-        new Map(mockProjects.map(p => [p.name, p.id])), 
-        [mockProjects]
+        new Map(projects.map(p => [p.name, p.id])),
+        [projects]
     );
 
     const handleTaskUpdate = (taskId, completed) => {
@@ -1141,17 +1081,6 @@ export default function DashboardHomePage() {
             task.id === taskId ? { ...task, completed } : task
         ));
     };
-
-    // <-- ADD LOGOUT HANDLER
-    const handleLogout = async () => {
-        try {
-            await logout();
-            navigate('/'); // Navigate to landing page after logout
-        } catch (error) {
-            console.error("Failed to log out:", error);
-        }
-    };
-    // --- END LOGOUT CHANGES ---
     
     const unreadNotifications = mockNotifications.filter(n => n.unread).length;
 
@@ -1164,21 +1093,10 @@ export default function DashboardHomePage() {
 
     return (
         <div className="min-h-screen bg-black relative overflow-hidden">
-            {/* Advanced 3D Background */}
-            <div className="fixed inset-0 z-0">
-                <Canvas camera={{ position: [0, 0, 30], fov: 60 }}>
-                    <Suspense fallback={null}>
-                        <Advanced3DBackground />
-                        <Environment preset="night" />
-                    </Suspense>
-                </Canvas>
-            </div>
-            
             {/* Content Overlay */}
             <div className="relative z-10 p-6">
                 {/* Enhanced Header */}
                 <motion.div
-                    ref={headerRef}
                     className="mb-8"
                     initial={{ opacity: 0, y: -100 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1239,18 +1157,6 @@ export default function DashboardHomePage() {
                                         </motion.span>
                                     )}
                                 </motion.button>
-                                
-                                {/* --- ADDED LOGOUT BUTTON --- */}
-                                <motion.button
-                                    onClick={handleLogout}
-                                    className="relative p-4 bg-gray-900/80 border border-gray-700 rounded-2xl hover:bg-gray-800 transition-all backdrop-blur-sm group"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    title="Logout"
-                                >
-                                    <LogOut className="w-6 h-6 text-gray-300 group-hover:text-red-500 transition-colors" />
-                                </motion.button>
-                                {/* --- END OF LOGOUT BUTTON --- */}
                                 
                                 <motion.div
                                     className="flex items-center gap-3 bg-gray-900/80 border border-gray-700 rounded-2xl px-6 py-3 backdrop-blur-sm cursor-pointer"
@@ -1499,7 +1405,7 @@ export default function DashboardHomePage() {
                                         );
                                     })}
                                 </AnimatePresence>
-                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 </div>

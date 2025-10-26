@@ -1,63 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import ProfileForm from "../../components/profile/ProfileForm";
-import * as api from "../../lib/api"; // import all and check at runtime
+// src/pages/profile/EditProfile.jsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import ProfileForm from '../../components/profile/ProfileForm';
+import DashboardLayout from '../../layouts/DashboardLayout';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function EditProfile() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [initial, setInitial] = useState(null);
-  const [saving, setSaving] = useState(false);
+    const navigate = useNavigate();
+    const { currentUser } = useAuth();
 
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      try {
-        if (typeof api.getUserProfile === "function") {
-          const p = await api.getUserProfile(user.$id);
-          setInitial(p || {});
-        } else {
-          const res = await fetch(`/api/profile/${user.$id}`);
-          if (res.ok) setInitial(await res.json());
-          else setInitial({});
-        }
-      } catch (e) {
-        console.warn("Failed loading profile:", e);
-        setInitial({});
-      }
+    // This would be fetched from your backend
+    const currentProfile = {
+        name: currentUser?.name || '',
+        role: 'Full-Stack Developer', // This should come from the user's profile
+        bio: 'Passionate about building beautiful and functional web applications.',
+        skills: ['React', 'Node.js', 'Appwrite'],
+        github: 'https://github.com/your-username',
+        linkedin: 'https://linkedin.com/in/your-username',
+        twitter: 'https://twitter.com/your-username',
     };
-    load();
-  }, [user]);
 
-  const handleSave = async (payload) => {
-    if (!user) throw new Error("Not authenticated");
-    setSaving(true);
-    try {
-      if (typeof api.updateUserProfile === "function") {
-        await api.updateUserProfile(user.$id, payload);
-      } else {
-        await fetch(`/api/profile/${user.$id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-      navigate(-1);
-    } catch (err) {
-      console.error("Failed saving profile:", err);
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  };
+    const handleSaveProfile = (profile) => {
+        console.log('Updating profile:', profile);
+        // Here you would typically save the updated profile to your backend
+        navigate('/dashboard/settings');
+    };
 
-  if (initial === null) return <div className="p-8 text-center text-gray-400">Loading profile…</div>;
-
-  return (
-    <div className="min-h-screen p-8 bg-gradient-to-b from-black via-gray-900 to-black">
-      <h2 className="text-2xl text-white mb-6">Edit profile</h2>
-      <ProfileForm initial={initial} onSave={handleSave} saving={saving} />
-    </div>
-  );
+    return (
+        <DashboardLayout>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-4xl mx-auto"
+            >
+                <h2 className="text-4xl font-bold text-white mb-4">Edit Your Profile</h2>
+                <p className="text-gray-400 mb-8">Keep your profile up-to-date to attract collaborators.</p>
+                <ProfileForm profile={currentProfile} onSave={handleSaveProfile} />
+            </motion.div>
+        </DashboardLayout>
+    );
 }
