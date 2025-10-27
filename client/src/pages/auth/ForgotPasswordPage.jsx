@@ -32,8 +32,12 @@ export default function ForgotPasswordPage() {
     try {
       await requestPasswordReset(email);
       setMessage('Recovery email sent! Please check your inbox.');
-    } catch {
-      setError('Failed to send recovery email. Please try again.');
+    } catch (error) {
+      let errorMessage = 'Failed to send recovery email. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

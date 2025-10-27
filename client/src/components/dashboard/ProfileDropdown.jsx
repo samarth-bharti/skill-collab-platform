@@ -6,6 +6,10 @@ export default function ProfileDropdown() {
     const [isOpen, setIsOpen] = useState(false);
     const { logout, user } = useAuth();
 
+    if (!user) {
+        return null;
+    }
+
     return (
         <div className="relative">
             <button onClick={() => setIsOpen(!isOpen)} className="w-10 h-10 bg-[#2C2C2C] rounded-full flex items-center justify-center hover:bg-zinc-700">

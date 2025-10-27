@@ -38,6 +38,16 @@ export const createUserProfile = async (userId, profileData) => {
     }
 };
 
+export const getTeamMembers = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, usersCollectionId);
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching all users:', error);
+        throw error;
+    }
+};
+
 export const getAllUsers = async () => {
     try {
         const response = await databases.listDocuments(dbId, usersCollectionId);
@@ -165,6 +175,57 @@ export const getUnreadMessagesCount = async (userId) => {
     }
 };
 
+export const getUserSettings = async (userId) => {
+    try {
+        return await databases.getDocument(dbId, 'user_settings', userId);
+    } catch (error) {
+        console.error('Error fetching user settings:', error);
+        throw error;
+    }
+};
+
+export const updateUserSettings = async (userId, settings) => {
+    try {
+        return await databases.updateDocument(dbId, 'user_settings', userId, settings);
+    } catch (error) {
+        console.error('Error updating user settings:', error);
+        throw error;
+    }
+};
+
+export const getProjects = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'projects');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching projects:', error);
+        throw error;
+    }
+};
+
+export const getProjectById = async (projectId) => {
+    try {
+        return await databases.getDocument(dbId, 'projects', projectId);
+    } catch (error) {
+        console.error('Error fetching project by ID:', error);
+        throw error;
+    }
+};
+
+export const getTasksByProjectId = async (projectId) => {
+    try {
+        const response = await databases.listDocuments(
+            dbId, 
+            'tasks',
+            [Query.equal("projectId", projectId)]
+        );
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching tasks by project ID:', error);
+        throw error;
+    }
+};
+
 // --- Chat Helper Functions ---
 export const searchUsers = async (query, limit = 15) => {
     try {
@@ -245,4 +306,52 @@ export const confirmPasswordReset = async (userId, secret, password) => {
     }
 };
 
-console.log('✅ API module loaded with chat functionality');
+export const getMetrics = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'metrics');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching metrics:', error);
+        throw error;
+    }
+};
+
+export const getNotifications = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'notifications');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+    }
+};
+
+export const getTimeline = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'timeline');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching timeline:', error);
+        throw error;
+    }
+};
+
+export const getSkillVerifications = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'skill_verifications');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching skill verifications:', error);
+        throw error;
+    }
+};
+
+export const getTasks = async () => {
+    try {
+        const response = await databases.listDocuments(dbId, 'tasks');
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        throw error;
+    }
+};

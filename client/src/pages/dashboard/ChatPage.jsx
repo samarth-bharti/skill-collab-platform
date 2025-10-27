@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -10,15 +10,30 @@ import {
   MoreHorizontal, 
   Phone, 
   Video, 
-  X
+  X,
+  AlertTriangle
 } from "lucide-react";
 import { 
   sendMessage, 
   getConversation, 
   getAllUsers,
   getUserConversations,
-  getUserProfile
+  getUserProfile,
+  searchUsers,
+  getFeaturedUsers
 } from "../../lib/api";
+
+const FEATURED_USERS_COUNT = 8;
+
+const ErrorDisplay = ({ message }) => {
+  if (!message) return null;
+  return (
+    <div className="p-4 my-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800" role="alert">
+      <AlertTriangle className="inline w-4 h-4 mr-2" />
+      <span className="font-medium">Error:</span> {message}
+    </div>
+  );
+};
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -30,6 +45,7 @@ export default function ChatPage() {
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
   
   // UI States
   const [showUserDiscovery, setShowUserDiscovery] = useState(false);
@@ -40,187 +56,133 @@ export default function ChatPage() {
   
   const messagesEndRef = useRef(null);
 
-  // Load initial data
-  useEffect(() => {
-    if (user) {
-      loadInitialData();
+  const handleUserSearch = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
     }
-  }, [user]);
-
-  // Load messages when active partner changes
-  useEffect(() => {
-    if (activePartnerId && user) {
-      loadMessages();
+    try {
+      setSearchLoading(true);
+      const results = await searchUsers(searchQuery);
+      setSearchResults(results);
+    } catch (err) {
+      setError("Failed to search for users.");
+    } finally {
+      setSearchLoading(false);
     }
-  }, [activePartnerId, user]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Search users when query changes
-  useEffect(() => {
-    const searchTimeout = setTimeout(() => {
-      if (searchQuery.trim()) {
-        handleUserSearch();
-      } else {
-        setSearchResults([]);
-      }
-    }, 300);
-    return () => clearTimeout(searchTimeout);
   }, [searchQuery]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔄 Loading initial chat data...');
-      
-      // Load all users FIRST
-      const users = await getAllUsers();
-      const otherUsers = users.filter(u => 
-        (u.$id !== user.$id) && (u.userId !== user.$id)
-      );
+      setError(null);
+      const [users, featured] = await Promise.all([
+        getAllUsers(),
+        getFeaturedUsers(FEATURED_USERS_COUNT),
+      ]);
+      const otherUsers = users.filter(u => u.$id !== user.$id);
       setAllUsers(otherUsers);
-      setFeaturedUsers(otherUsers.slice(0, 8));
-      console.log('✅ Loaded', otherUsers.length, 'users');
-      
-      // THEN load conversations with the users data available
+      setFeaturedUsers(featured);
       await loadConversations(otherUsers);
-      
-      console.log('✅ Initial data loaded');
-    } catch (error) {
-      console.error('❌ Error loading initial data:', error);
+    } catch (err) {
+      setError("Failed to load initial chat data.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const loadConversations = async (usersArray = null) => {
+  const loadConversations = useCallback(async (usersArray) => {
     try {
-      console.log('💬 Loading conversations...');
       const userConversations = await getUserConversations(user.$id);
       const availableUsers = usersArray || allUsers;
       
-      console.log('📋 Found', userConversations.length, 'raw conversations');
-      console.log('👥 Available users:', availableUsers.length);
-      
-      // Enrich conversations with user profiles
       const enrichedConversations = await Promise.all(
         userConversations.map(async (conversation) => {
-          try {
-            const otherUserId = conversation.otherUserId;
-            console.log('🔍 Looking for user:', otherUserId);
-            
-            // First, try to find in loaded users
-            let otherUser = availableUsers.find(u => u.$id === otherUserId || u.userId === otherUserId);
-            
-            // If not found, try to fetch from API
-            if (!otherUser) {
-              try {
-                console.log('🌐 Fetching user profile for:', otherUserId);
-                otherUser = await getUserProfile(otherUserId);
-                console.log('✅ Fetched user profile:', otherUser.fullName);
-              } catch {
-                console.warn('Could not fetch user profile for:', otherUserId);
-                otherUser = {
-                  $id: otherUserId,
-                  fullName: `User ${otherUserId.slice(0, 8)}...`,
-                  email: 'Unknown User'
-                };
-              }
-            } else {
-              console.log('✅ Found user in cache:', otherUser.fullName);
+          const otherUserId = conversation.otherUserId;
+          let otherUser = availableUsers.find(u => u.$id === otherUserId);
+          
+          if (!otherUser) {
+            try {
+              otherUser = await getUserProfile(otherUserId);
+            } catch {
+              otherUser = {
+                $id: otherUserId,
+                fullName: `User ${otherUserId.slice(0, 8)}...`,
+                email: 'Unknown User'
+              };
             }
-            
-            return {
-              ...conversation,
-              otherUser: otherUser,
-              lastMessage: conversation.content || 'No messages yet',
-              lastMessageTime: conversation.createdAt || conversation.$createdAt,
-              isUnread: !conversation.isRead && conversation.receiverId === user.$id
-            };
-          } catch (error) {
-            console.warn('Could not enrich conversation:', error);
-            return {
-              ...conversation,
-              otherUser: {
-                $id: conversation.otherUserId,
-                fullName: `User ${conversation.otherUserId.slice(0, 8)}...`,
-                email: 'Unknown'
-              },
-              lastMessage: conversation.content || 'No messages yet',
-              lastMessageTime: conversation.createdAt || conversation.$createdAt,
-              isUnread: false
-            };
           }
+          
+          return {
+            ...conversation,
+            otherUser,
+            lastMessage: conversation.content || 'No messages yet',
+            lastMessageTime: conversation.createdAt || conversation.$createdAt,
+            isUnread: !conversation.isRead && conversation.receiverId === user.$id
+          };
         })
       );
       
       setConversations(enrichedConversations);
-      console.log('✅ Enriched', enrichedConversations.length, 'conversations');
-      
-      // Log conversation details for debugging
-      enrichedConversations.forEach(conv => {
-        console.log('💬 Conversation with:', conv.otherUser.fullName, '- Last message:', conv.lastMessage.slice(0, 50));
-      });
-      
-    } catch (error) {
-      console.error('❌ Error loading conversations:', error);
+    } catch (err) {
+      setError("Failed to load conversations.");
     }
-  };
+  }, [user, allUsers]);
 
-  const handleUserSearch = () => {
-    try {
-      setSearchLoading(true);
-      const results = allUsers.filter(u => 
-        u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchResults(results.slice(0, 15));
-    } catch (error) {
-      console.error('❌ Error searching users:', error);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     if (!activePartnerId || !user) return;
     
     try {
-      console.log('💬 Loading conversation with:', activePartnerId);
       const conversation = await getConversation(user.$id, activePartnerId);
       setMessages(conversation);
       
-      // Set active partner profile - try multiple methods to find the user
-      let partner = allUsers.find(u => u.$id === activePartnerId || u.userId === activePartnerId);
+      let partner = allUsers.find(u => u.$id === activePartnerId);
       
       if (!partner) {
-        // Try to get from conversations
         const existingConversation = conversations.find(c => c.otherUserId === activePartnerId);
         if (existingConversation && existingConversation.otherUser) {
           partner = existingConversation.otherUser;
         } else {
-          // Last resort - fetch from API
-                    try {
-                      partner = await getUserProfile(activePartnerId);
-                    } catch {
-                      partner = { 
-                        $id: activePartnerId, 
-                        fullName: `User ${activePartnerId.slice(0, 8)}...`,
-                        email: 'Unknown'
-                      };          }
+          try {
+            partner = await getUserProfile(activePartnerId);
+          } catch {
+            partner = { 
+              $id: activePartnerId, 
+              fullName: `User ${activePartnerId.slice(0, 8)}...`,
+              email: 'Unknown'
+            };          
+          }
         }
       }
       
       setActivePartnerProfile(partner);
-      console.log('✅ Set active partner:', partner.fullName);
-      console.log('✅ Loaded', conversation.length, 'messages');
-    } catch (error) {
-      console.error('❌ Error loading messages:', error);
+    } catch (err) {
+      setError("Failed to load messages.");
     }
-  };
+  }, [activePartnerId, user, allUsers, conversations]);
+
+  useEffect(() => {
+    if (user) {
+      loadInitialData();
+    }
+  }, [user, loadInitialData]);
+
+  useEffect(() => {
+    if (activePartnerId && user) {
+      loadMessages();
+    }
+  }, [activePartnerId, user, loadMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const searchTimeout = setTimeout(() => {
+      handleUserSearch();
+    }, 300);
+    return () => clearTimeout(searchTimeout);
+  }, [searchQuery, handleUserSearch]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activePartnerId || sending) return;
@@ -230,16 +192,11 @@ export default function ChatPage() {
     setSending(true);
     
     try {
-      console.log('📤 Sending message...');
       const newMessage = await sendMessage(user.$id, activePartnerId, content);
       setMessages(prev => [...prev, newMessage]);
-      
-      // Reload conversations to update the sidebar
       await loadConversations();
-      
-      console.log('✅ Message sent successfully');
-    } catch (error) {
-      console.error('❌ Error sending message:', error);
+    } catch (err) {
+      setError("Failed to send message.");
       setMessageInput(content); // Restore message on error
     } finally {
       setSending(false);
@@ -253,21 +210,15 @@ export default function ChatPage() {
     }
   };
 
-  const startChatWithUser = async (selectedUser) => {
-    const userId = selectedUser.$id || selectedUser.userId;
-    setActivePartnerId(userId);
+  const startChatWithUser = (selectedUser) => {
+    setActivePartnerId(selectedUser.$id);
     setShowUserDiscovery(false);
     setSearchQuery("");
     setSearchResults([]);
-    console.log('🗨️ Starting chat with:', selectedUser.fullName);
   };
 
   const selectConversation = (conversation) => {
-    const otherUserId = conversation.otherUserId || conversation.otherUser?.$id;
-    if (otherUserId) {
-      setActivePartnerId(otherUserId);
-      console.log('💬 Selected conversation with:', conversation.otherUser?.fullName);
-    }
+    setActivePartnerId(conversation.otherUserId);
   };
 
   const formatMessageTime = (timestamp) => {
@@ -286,8 +237,42 @@ export default function ChatPage() {
 
   const getUserDisplayName = (userObj) => {
     if (!userObj) return "Unknown User";
-    return userObj.fullName || userObj.name || `User ${(userObj.$id || userObj.userId)?.slice(0, 8)}...`;
+    return userObj.fullName || userObj.name || `User ${userObj.$id.slice(0, 8)}...`;
   };
+
+  const memoizedConversations = useMemo(() => conversations.map((conversation) => (
+    <button
+      key={conversation.otherUserId}
+      onClick={() => selectConversation(conversation)}
+      className={`w-full p-3 rounded-lg text-left transition-colors ${
+        activePartnerId === conversation.otherUserId
+          ? 'bg-green-500/20 border-l-2 border-green-500'
+          : 'hover:bg-gray-700/30'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+          <User className="w-6 h-6 text-green-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-medium text-white truncate">
+              {getUserDisplayName(conversation.otherUser)}
+            </h3>
+            <span className="text-xs text-gray-400">
+              {formatMessageTime(conversation.lastMessageTime)}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 truncate">
+            {conversation.lastMessage}
+          </p>
+          {conversation.isUnread && (
+            <div className="w-2 h-2 bg-green-500 rounded-full mt-1"></div>
+          )}
+        </div>
+      </div>
+    </button>
+  )), [conversations, activePartnerId]);
 
   if (loading) {
     return (
@@ -364,10 +349,10 @@ export default function ChatPage() {
                     searchLoading ? (
                       <div className="text-center py-2 text-gray-400">Searching...</div>
                     ) : searchResults.length > 0 ? (
-                      searchResults.map((user) => (
+                      searchResults.map((userResult) => (
                         <button
-                          key={user.$id || user.userId}
-                          onClick={() => startChatWithUser(user)}
+                          key={userResult.$id}
+                          onClick={() => startChatWithUser(userResult)}
                           className="w-full p-2 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg text-left transition-colors"
                         >
                           <div className="flex items-center gap-3">
@@ -376,10 +361,10 @@ export default function ChatPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-white truncate">
-                                {getUserDisplayName(user)}
+                                {getUserDisplayName(userResult)}
                               </p>
                               <p className="text-xs text-gray-400 truncate">
-                                {user.email || 'Developer'}
+                                {userResult.email || 'Developer'}
                               </p>
                             </div>
                           </div>
@@ -389,10 +374,10 @@ export default function ChatPage() {
                       <div className="text-center py-2 text-gray-400">No users found</div>
                     )
                   ) : (
-                    featuredUsers.map((user) => (
+                    featuredUsers.map((featuredUser) => (
                       <button
-                        key={user.$id || user.userId}
-                        onClick={() => startChatWithUser(user)}
+                        key={featuredUser.$id}
+                        onClick={() => startChatWithUser(featuredUser)}
                         className="w-full p-2 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg text-left transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -401,7 +386,7 @@ export default function ChatPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">
-                              {getUserDisplayName(user)}
+                              {getUserDisplayName(featuredUser)}
                             </p>
                             <p className="text-xs text-gray-400">Available • Developer</p>
                           </div>
@@ -417,41 +402,10 @@ export default function ChatPage() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
+          {error && <ErrorDisplay message={error} />}
           {conversations.length > 0 ? (
             <div className="p-2 space-y-1">
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.otherUserId || conversation.$id}
-                  onClick={() => selectConversation(conversation)}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    activePartnerId === conversation.otherUserId
-                      ? 'bg-green-500/20 border-l-2 border-green-500'
-                      : 'hover:bg-gray-700/30'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <User className="w-6 h-6 text-green-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-medium text-white truncate">
-                          {getUserDisplayName(conversation.otherUser)}
-                        </h3>
-                        <span className="text-xs text-gray-400">
-                          {formatMessageTime(conversation.lastMessageTime)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 truncate">
-                        {conversation.lastMessage || 'No messages yet'}
-                      </p>
-                      {conversation.isUnread && (
-                        <div className="w-2 h-2 bg-green-500 rounded-full mt-1"></div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
+              {memoizedConversations}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full p-6">
@@ -471,7 +425,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main Chat Area - Keep the same as before */}
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {activePartnerId && activePartnerProfile ? (
           <>
@@ -511,11 +465,11 @@ export default function ChatPage() {
                   <p className="text-gray-400">Start your conversation with {getUserDisplayName(activePartnerProfile)}</p>
                 </div>
               ) : (
-                messages.map((message, index) => {
+                messages.map((message) => {
                   const isOwn = message.senderId === user.$id;
                   return (
                     <motion.div
-                      key={message.$id || index}
+                      key={message.$id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
@@ -558,7 +512,7 @@ export default function ChatPage() {
                   disabled={!messageInput.trim() || sending}
                   className="p-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
-                  <Send className="w-5 h-5" />
+                  {sending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Send className="w-5 h-5" />}
                 </button>
               </div>
             </div>

@@ -1,15 +1,16 @@
-// SettingsPage.jsx - COMPLETE SKILL-BASED COLLABORATION PLATFORM SETTINGS
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { 
     Float, Environment, Stars, Box, MeshDistortMaterial
 } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { useAuth } from '../../hooks/useAuth';
+import { getUserSettings, updateUserSettings } from '../../lib/api';
 
 // FIXED LUCIDE IMPORTS
 import { 
-    User, Shield, Bell, Palette, Award, Zap, ChevronRight, Mail, Github, Linkedin, Link, Search, Save
+    User, Shield, Bell, Palette, Award, Zap, ChevronRight, Mail, Github, Linkedin, Link, Search, Save, RefreshCw
 } from 'lucide-react';
 
 // Settings Categories
@@ -57,56 +58,6 @@ const settingsCategories = [
         description: 'Customize theme, layout, and visual preferences'
     }
 ];
-
-// Mock Settings Data
-const mockUserSettings = {
-    profile: {
-        personalInfo: {
-            firstName: 'Alex',
-            lastName: 'Johnson',
-            email: 'alex.johnson@example.com',
-            phone: '+1 (555) 123-4567',
-            location: 'San Francisco, CA',
-            bio: 'Full-stack developer passionate about AI and blockchain technologies.'
-        }
-    },
-    skills: {
-        verification: {
-            autoGithubAnalysis: true,
-            allowPeerEndorsements: true,
-            skillDecayEnabled: true
-        }
-    },
-    privacy: {
-        account: {
-            twoFactorEnabled: false,
-            loginAlerts: true,
-            sessionTimeout: 30
-        }
-    },
-    notifications: {
-        push: {
-            enabled: true,
-            messages: true,
-            projectUpdates: true
-        },
-        email: {
-            enabled: true,
-            frequency: 'immediate'
-        }
-    },
-    integrations: {
-        connected: [
-            { service: 'GitHub', username: 'alexjohnson', connected: true },
-            { service: 'LinkedIn', username: 'alex-johnson-dev', connected: false }
-        ]
-    },
-    appearance: {
-        theme: 'dark',
-        accentColor: 'green',
-        animations: true
-    }
-};
 
 // 3D Background Component
 function SettingsBackground() {
@@ -430,9 +381,12 @@ const IntegrationCard = ({ integration, onToggle }) => {
 };
 
 // Integrations Settings Component
-const IntegrationsSettings = ({ settings }) => {
+const IntegrationsSettings = ({ settings, onSettingsChange }) => {
     const handleIntegrationToggle = (service) => {
-        console.log(`Toggling integration for ${service}`);
+        const newIntegrations = settings.integrations.connected.map(int => 
+            int.service === service ? { ...int, connected: !int.connected } : int
+        );
+        onSettingsChange('integrations.connected', newIntegrations);
     };
     
     return (
@@ -518,33 +472,84 @@ const AppearanceSettings = ({ settings, onSettingsChange }) => {
     );
 };
 
+const SettingsSkeleton = () => (
+    <div className="flex gap-8 animate-pulse">
+        <div className="w-80 space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-24 bg-gray-800 rounded-2xl"></div>
+            ))}
+        </div>
+        <div className="flex-1">
+            <div className="bg-gray-800/50 rounded-2xl p-6">
+                <div className="h-8 w-1/3 bg-gray-700 rounded mb-6"></div>
+                <div className="space-y-4">
+                    <div className="h-10 bg-gray-700 rounded-xl"></div>
+                    <div className="h-10 bg-gray-700 rounded-xl"></div>
+                    <div className="h-24 bg-gray-700 rounded-xl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
 // Main Settings Page Component
 export default function SettingsPage() {
+    const { user } = useAuth();
     const [activeCategory, setActiveCategory] = useState('profile');
-    const [settings, setSettings] = useState(mockUserSettings);
+    const [settings, setSettings] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    
-    const handleSettingsChange = (path, value) => {
-        const keys = path.split('.');
-        const newSettings = { ...settings };
-        let current = newSettings;
-        
-        for (let i = 0; i < keys.length - 1; i++) {
-            current = current[keys[i]];
+
+    const loadSettings = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const userSettings = await getUserSettings(user.$id);
+            setSettings(userSettings);
+        } catch (e) {
+            console.error('Failed to load settings:', e);
+            setError('Could not load your settings. Please try again.');
         }
-        
-        current[keys[keys.length - 1]] = value;
-        setSettings(newSettings);
-        setHasUnsavedChanges(true);
-    };
+        setLoading(false);
+    }, [user]);
+
+    useEffect(() => {
+        loadSettings();
+    }, [loadSettings]);
     
-    const handleSaveSettings = () => {
-        console.log('Saving settings...', settings);
-        setHasUnsavedChanges(false);
+    const handleSettingsChange = useCallback((path, value) => {
+        const keys = path.split('.');
+        setSettings(prevSettings => {
+            const newSettings = JSON.parse(JSON.stringify(prevSettings));
+            let current = newSettings;
+            for (let i = 0; i < keys.length - 1; i++) {
+                current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = value;
+            return newSettings;
+        });
+        setHasUnsavedChanges(true);
+    }, []);
+    
+    const handleSaveSettings = async () => {
+        if (!user) return;
+        try {
+            await updateUserSettings(user.$id, settings);
+            setHasUnsavedChanges(false);
+        } catch (e) {
+            console.error('Failed to save settings:', e);
+            setError('Could not save your settings. Please try again.');
+        }
     };
     
     const renderSettingsContent = () => {
+        if (loading) return <SettingsSkeleton />;
+        if (error) return <div className="text-center py-20 text-yellow-300"><p className="text-lg mb-4">{error}</p><button onClick={loadSettings} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center mx-auto"><RefreshCw className="w-4 h-4 mr-2" />Try Again</button></div>;
+        if (!settings) return null;
+
         switch (activeCategory) {
             case 'profile':
                 return <ProfileSettings settings={settings} onSettingsChange={handleSettingsChange} />;

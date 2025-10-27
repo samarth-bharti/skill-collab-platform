@@ -1,27 +1,92 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, DollarSign, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { getProjectById, getTasksByProjectId } from '../../lib/api';
 
-// Assuming mock data is available or fetched from an API
-const mockProjects = [
-    { id: 1, name: "AI-Powered Web App", description: "A web application leveraging machine learning to provide personalized user experiences.", progress: 78, status: "Active", members: [{name: 'Sarah Chen'}, {name: 'David Kumar'}], budget: 25000, deadline: "2025-12-15", requiredSkills: ["React", "Python", "Machine Learning", "UI/UX"], skillsVerified: 85, type: "Full-Stack Development" },
-    { id: 2, name: "Mobile E-commerce Platform", description: "A cross-platform mobile app for a seamless shopping experience.", progress: 45, status: "Recruiting", members: [{name: 'Alex Morgan'}], budget: 18000, deadline: "2025-11-30", requiredSkills: ["React Native", "Node.js", "MongoDB", "Payment APIs"], skillsVerified: 60, type: "Mobile Development" },
-    { id: 3, name: "Blockchain Voting System", description: "A decentralized and secure voting system built on blockchain technology.", progress: 92, status: "Active", members: [{name: 'Lisa Rodriguez'}, {name: 'Sarah Chen'}], budget: 42000, deadline: "2025-10-20", requiredSkills: ["Solidity", "Web3", "Smart Contracts", "Security"], skillsVerified: 95, type: "Blockchain" },
-    { id: 4, name: "Data Analytics Dashboard", description: "An interactive dashboard for visualizing complex business intelligence data.", progress: 60, status: "Active", members: [{name: 'David Kumar'}], budget: 30000, deadline: "2025-11-01", requiredSkills: ["D3.js", "PostgreSQL", "ETL"], skillsVerified: 75, type: "Data Science" },
-];
-
-const mockTasks = [
-    { id: 1, text: "Design user authentication system", completed: false, project_id: 1 },
-    { id: 2, text: "Implement machine learning model", completed: true, project_id: 1 },
-    { id: 3, text: "Set up smart contract deployment", completed: false, project_id: 3 },
-];
+const SkeletonLoader = () => (
+    <div className="min-h-screen bg-black text-white p-8 animate-pulse">
+        <div className="h-8 w-48 bg-gray-700 rounded mb-6"></div>
+        <div className="h-12 w-3/4 bg-gray-700 rounded mb-2"></div>
+        <div className="h-6 w-1/2 bg-gray-700 rounded mb-10"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 space-y-8">
+                <div className="bg-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                    <div className="h-6 w-1/2 bg-gray-700 rounded mb-4"></div>
+                    <div className="space-y-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                    </div>
+                </div>
+                <div className="bg-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                    <div className="h-6 w-1/3 bg-gray-700 rounded mb-4"></div>
+                    <div className="space-y-3">
+                        <div className="h-8 bg-gray-700 rounded"></div>
+                        <div className="h-8 bg-gray-700 rounded"></div>
+                    </div>
+                </div>
+            </div>
+            <div className="lg:col-span-2 bg-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                <div className="h-6 w-1/4 bg-gray-700 rounded mb-4"></div>
+                <div className="space-y-4">
+                    <div className="h-12 bg-gray-700 rounded"></div>
+                    <div className="h-12 bg-gray-700 rounded"></div>
+                    <div className="h-12 bg-gray-700 rounded"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
 
 export default function ProjectDetailPage() {
     const { projectId } = useParams();
     const navigate = useNavigate();
-    const project = mockProjects.find(p => p.id === parseInt(projectId));
-    const tasks = mockTasks.filter(t => t.project_id === parseInt(projectId));
+    const [project, setProject] = useState(null);
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const loadProjectData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [projectData, tasksData] = await Promise.all([
+                getProjectById(projectId),
+                getTasksByProjectId(projectId)
+            ]);
+            setProject(projectData);
+            setTasks(tasksData);
+        } catch (e) {
+            console.error('Failed to load project data:', e);
+            setError('Could not load project details. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, [projectId]);
+
+    useEffect(() => {
+        loadProjectData();
+    }, [loadProjectData]);
+
+    if (loading) {
+        return <SkeletonLoader />;
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
+                <h1 className="text-4xl font-bold text-red-500 mb-4">{error}</h1>
+                <button
+                    onClick={loadProjectData}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-black font-semibold rounded-lg hover:bg-green-400"
+                >
+                    <RefreshCw className="w-5 h-5" />
+                    Try Again
+                </button>
+            </div>
+        );
+    }
 
     if (!project) {
         return (

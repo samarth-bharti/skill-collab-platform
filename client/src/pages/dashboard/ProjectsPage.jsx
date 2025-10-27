@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Briefcase, Search, Filter, DollarSign, UserCheck } from 'lucide-react';
+import { Briefcase, Search, Filter, DollarSign, UserCheck, RefreshCw } from 'lucide-react';
+import { getProjects } from '../../lib/api';
 
-// Using the same mock data structure from your DashboardHomePage
-const mockProjects = [
-    { id: 1, name: "AI-Powered Web App", progress: 78, status: "Active", members: 4, budget: 25000, type: "Full-Stack Development", requiredSkills: ["React", "Python", "Machine Learning"], skillsVerified: 85 },
-    { id: 2, name: "Mobile E-commerce Platform", progress: 45, status: "Recruiting", members: 2, budget: 18000, type: "Mobile Development", requiredSkills: ["React Native", "Node.js", "MongoDB"], skillsVerified: 60 },
-    { id: 3, name: "Blockchain Voting System", progress: 92, status: "Active", members: 6, budget: 42000, type: "Blockchain", requiredSkills: ["Solidity", "Web3", "Security"], skillsVerified: 95 },
-    { id: 4, name: "Data Analytics Dashboard", progress: 60, status: "Active", members: 3, budget: 30000, type: "Data Science", requiredSkills: ["D3.js", "PostgreSQL", "ETL"], skillsVerified: 75 },
-];
+const ProjectCardSkeleton = () => (
+    <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-700 animate-pulse">
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gray-700 rounded-xl"></div>
+                <div>
+                    <div className="h-6 w-48 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-4 w-32 bg-gray-700 rounded"></div>
+                </div>
+            </div>
+            <div className="text-right">
+                <div className="h-8 w-16 bg-gray-700 rounded"></div>
+            </div>
+        </div>
+        <div className="mb-4">
+            <div className="h-4 w-24 bg-gray-700 rounded mb-2"></div>
+            <div className="flex flex-wrap gap-2">
+                <div className="h-6 w-20 bg-gray-700 rounded-full"></div>
+                <div className="h-6 w-24 bg-gray-700 rounded-full"></div>
+            </div>
+        </div>
+        <div className="flex items-center justify-between text-xs pt-4 border-t border-gray-700">
+            <div className="h-4 w-28 bg-gray-700 rounded"></div>
+            <div className="h-4 w-32 bg-gray-700 rounded"></div>
+            <div className="h-6 w-20 bg-gray-700 rounded-full"></div>
+        </div>
+    </div>
+);
 
 const ProjectCard = ({ project, onClick }) => (
     <motion.div
@@ -66,8 +88,29 @@ const ProjectCard = ({ project, onClick }) => (
 export default function ProjectsPage() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const filteredProjects = mockProjects.filter(p =>
+    const loadProjects = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const projectData = await getProjects();
+            setProjects(projectData);
+        } catch (e) {
+            console.error('Failed to load projects:', e);
+            setError('Could not load projects. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadProjects();
+    }, [loadProjects]);
+
+    const filteredProjects = projects.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -104,23 +147,41 @@ export default function ProjectsPage() {
                 </div>
             </motion.div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {filteredProjects.map((project, index) => (
-                    <motion.div
-                        key={project.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + index * 0.1 }}
-                    >
-                        <ProjectCard
-                            project={project}
-                            onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-                        />
-                    </motion.div>
-                ))}
-            </div>
-            {filteredProjects.length === 0 && (
+            {loading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {Array.from({ length: 6 }).map((_, i) => <ProjectCardSkeleton key={i} />)}
+                </div>
+            )}
+
+            {error && (
+                <div className="text-center py-20 text-yellow-300">
+                    <p className="text-lg mb-4">{error}</p>
+                    <button onClick={loadProjects} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center mx-auto">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Try Again
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {filteredProjects.map((project, index) => (
+                        <motion.div
+                            key={project.$id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 + index * 0.1 }}
+                        >
+                            <ProjectCard
+                                project={project}
+                                onClick={() => navigate(`/dashboard/projects/${project.$id}`)}
+                            />
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+
+            {!loading && !error && filteredProjects.length === 0 && (
                 <div className="text-center py-20 text-gray-500">
                     <p className="text-lg">No projects found.</p>
                     <p>Try adjusting your search query.</p>
