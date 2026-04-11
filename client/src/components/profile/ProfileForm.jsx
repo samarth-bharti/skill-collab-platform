@@ -5,8 +5,8 @@ import { User, Briefcase, Code, Link as LinkIcon, Save } from 'lucide-react';
 import FormInput from '../common/FormInput';
 import ActionButton from '../common/ActionButton';
 
-export default function ProfileForm({ profile: initialProfile, onSave }) {
-    const [profile, setProfile] = useState(initialProfile || {
+export default function ProfileForm({ profile: initialProfile, initial, onSave, saving = false }) {
+    const [profile, setProfile] = useState(initialProfile || initial || {
         name: '',
         role: '',
         bio: '',
@@ -132,7 +132,8 @@ export default function ProfileForm({ profile: initialProfile, onSave }) {
                 <ActionButton
                     type="submit"
                     icon={Save}
-                    text="Save Profile"
+                    text={saving ? 'Saving...' : 'Save Profile'}
+                    disabled={saving}
                     className="bg-gradient-to-r from-green-500 to-emerald-400 text-black"
                 />
             </div>

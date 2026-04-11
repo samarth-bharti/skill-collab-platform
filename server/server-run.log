@@ -1,0 +1,8 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------< com.skillcollab:skill-collab-server >-----------------
+[INFO] Building skill-collab-server 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.4.4:run (default-cli) > test-compile @ skill-collab-server >>>

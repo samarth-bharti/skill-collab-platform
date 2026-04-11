@@ -1,10 +1,25 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, HelpCircle, BookOpen, Send, ChevronDown, RefreshCw, Plus } from "lucide-react";
+import { MessageSquare, HelpCircle, BookOpen, Send, ChevronDown, Plus } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import axios from "axios";
 
-const CHAT_API_ENDPOINT = import.meta.env.VITE_CHAT_API_ENDPOINT;
+const buildSupportReply = (message, userName) => {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("password")) {
+        return "In this frontend-only demo, password resets happen locally in your browser. Use the forgot-password flow and then open the reset page to update it.";
+    }
+
+    if (normalized.includes("project") || normalized.includes("join")) {
+        return "Open Discover to browse collaborators and Projects to explore active workspaces. This demo keeps everything local, so you can explore freely without a backend.";
+    }
+
+    if (normalized.includes("profile") || normalized.includes("edit")) {
+        return "You can update your profile from Settings or the profile builder. Changes are stored in localStorage so they stay on this browser.";
+    }
+
+    return `Thanks ${userName || 'there'} - this support chat is running fully on the frontend now. I can help with navigation, profile setup, or understanding the demo data.`;
+};
 
 const FAQItem = ({ faq, isOpen, onClick }) => (
     <li className="border-b border-gray-700 last:border-b-0">
@@ -35,7 +50,7 @@ export default function SupportPage() {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState("chat");
     const [chatMessages, setChatMessages] = useState([
-        { id: 1, sender: "agent", text: "Hi! How can I assist you today?", timestamp: Date.now() },
+        { id: 1, sender: "agent", text: "Hi! This support center now runs fully on the frontend. How can I help?", timestamp: Date.now() },
     ]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -46,36 +61,30 @@ export default function SupportPage() {
     const handleSendMessage = useCallback(async () => {
         if (!input.trim() || !user) return;
 
+        const currentInput = input.trim();
         const userMessage = {
             id: Date.now(),
             sender: "user",
-            text: input.trim(),
+            text: currentInput,
             timestamp: Date.now(),
         };
 
         setChatMessages((msgs) => [...msgs, userMessage]);
-        const currentInput = input.trim();
         setInput("");
         setIsTyping(true);
         setError(null);
 
         try {
-            const response = await axios.post(CHAT_API_ENDPOINT, {
-                message: currentInput,
-                userId: user.$id,
-            });
-
+            await new Promise((resolve) => setTimeout(resolve, 500));
             const botMessage = {
                 id: Date.now() + 1,
                 sender: "agent",
-                text: response.data.response,
+                text: buildSupportReply(currentInput, user.name),
                 timestamp: Date.now(),
             };
-
             setChatMessages((msgs) => [...msgs, botMessage]);
-        } catch (err) {
-            console.error("Error fetching bot response:", err);
-            setError("Sorry, I'm having trouble connecting. Please try again later.");
+        } catch {
+            setError("The local support assistant could not answer right now. Please try again.");
         } finally {
             setIsTyping(false);
         }
@@ -94,17 +103,16 @@ export default function SupportPage() {
     const faqs = [
         {
             question: "How do I reset my password?",
-            answer: "Go to your account settings and click 'Reset Password'. Follow the instructions sent to your email.",
+            answer: "Use the forgot-password page. In this frontend-only version, the reset request and password update are saved locally in your browser.",
         },
         {
             question: "How do I join a project?",
-            answer: "Browse projects in the Discover section and request to join from the project page.",
+            answer: "Browse projects in Discover or Projects, then use the demo workflow to explore collaborators and project detail pages.",
         },
     ];
 
     return (
         <main className="min-h-screen p-6 bg-gradient-to-br from-gray-900 to-black text-white flex flex-col rounded-lg shadow-xl max-w-7xl mx-auto">
-            {/* Header with tab navigation */}
             <header className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-4xl font-semibold tracking-tight">Support Center</h1>
                 <nav className="flex gap-3 flex-wrap" role="tablist">
@@ -113,12 +121,11 @@ export default function SupportPage() {
                             key={id}
                             type="button"
                             onClick={() => setActiveTab(id)}
-                            className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition 
-                                ${
+                            className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition ${
                                 activeTab === id
                                     ? "bg-green-600 text-black shadow-lg"
                                     : "bg-gray-800 hover:bg-gray-700 text-gray-400"
-                                }`}
+                            }`}
                             role="tab"
                             aria-selected={activeTab === id}
                             aria-controls={`${id}-panel`}
@@ -137,11 +144,9 @@ export default function SupportPage() {
                 </div>
             )}
 
-            {/* Tab panels */}
             <section className="flex-grow flex flex-col rounded-lg overflow-hidden border border-gray-700 bg-gray-900 shadow-inner">
                 {activeTab === "chat" && (
                     <>
-                        {/* Chat message area */}
                         <div
                             className="flex-grow p-6 overflow-auto space-y-5"
                             style={{ scrollbarWidth: "thin" }}
@@ -152,9 +157,7 @@ export default function SupportPage() {
                             {chatMessages.map(({ id, sender, text }, idx) => (
                                 <motion.div
                                     key={id}
-                                    className={`flex max-w-[70%] ${
-                                        sender === "user" ? "ml-auto justify-end" : "mr-auto justify-start"
-                                    }`}
+                                    className={`flex max-w-[70%] ${sender === "user" ? "ml-auto justify-end" : "mr-auto justify-start"}`}
                                     initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: idx * 0.05 }}
@@ -185,7 +188,6 @@ export default function SupportPage() {
                             <div ref={messageEndRef} />
                         </div>
 
-                        {/* Input area */}
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
@@ -195,7 +197,7 @@ export default function SupportPage() {
                         >
                             <textarea
                                 rows={1}
-                                placeholder="Type your message…"
+                                placeholder="Type your message..."
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => {
@@ -220,12 +222,7 @@ export default function SupportPage() {
                 )}
 
                 {activeTab === "faq" && (
-                    <div
-                        className="overflow-auto p-6"
-                        role="tabpanel"
-                        id="faq-panel"
-                        aria-labelledby="faq-tab"
-                    >
+                    <div className="overflow-auto p-6" role="tabpanel" id="faq-panel" aria-labelledby="faq-tab">
                         <h2 className="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
                         <ul className="bg-gray-800 rounded-lg border border-gray-700">
                             {faqs.map((faq, idx) => (
@@ -236,12 +233,7 @@ export default function SupportPage() {
                 )}
 
                 {activeTab === "tickets" && (
-                    <div
-                        className="overflow-auto p-6"
-                        role="tabpanel"
-                        id="tickets-panel"
-                        aria-labelledby="tickets-tab"
-                    >
+                    <div className="overflow-auto p-6" role="tabpanel" id="tickets-panel" aria-labelledby="tickets-tab">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-semibold">Your Support Tickets</h2>
                             <button className="bg-green-500 hover:bg-green-600 transition px-4 py-2 rounded-lg font-bold flex items-center gap-2">
@@ -251,8 +243,8 @@ export default function SupportPage() {
                         </div>
                         <ul className="space-y-6">
                             {[
-                                { id: 1, subject: "Issue logging in", status: "Open", updated: "2 hours ago" },
-                                { id: 2, subject: "Project sync error", status: "Closed", updated: "3 days ago" },
+                                { id: 1, subject: "Question about local demo data", status: "Open", updated: "2 hours ago" },
+                                { id: 2, subject: "Need help editing profile", status: "Closed", updated: "3 days ago" },
                             ].map(({ id, subject, status, updated }) => (
                                 <li key={id} className="bg-gray-800 rounded-lg p-4 shadow-md flex justify-between items-center">
                                     <div>
@@ -261,9 +253,7 @@ export default function SupportPage() {
                                     </div>
                                     <span
                                         className={`px-3 py-1 rounded-full font-bold text-sm ${
-                                            status === "Open"
-                                                ? "bg-green-600 text-black"
-                                                : "bg-gray-600 text-gray-300"
+                                            status === "Open" ? "bg-green-600 text-black" : "bg-gray-600 text-gray-300"
                                         }`}
                                     >
                                         {status}

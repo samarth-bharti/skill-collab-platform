@@ -8,14 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx",
-    "postinstall": "mkdir -p public && cp -f SKLBCLBP/public/_redirects public/_redirects || true",
-    "postbuild": "mkdir -p dist && cp -f public/_redirects dist/_redirects || true"
+    "postinstall": "node -e \"const fs=require('fs'); const path=require('path'); const src=path.join('SKLBCLBP','public','_redirects'); const destDir='public'; const dest=path.join(destDir,'_redirects'); fs.mkdirSync(destDir,{recursive:true}); if (fs.existsSync(src)) fs.copyFileSync(src,dest);\"",
+    "postbuild": "node -e \"const fs=require('fs'); const path=require('path'); const src=path.join('public','_redirects'); const destDir='dist'; const dest=path.join(destDir,'_redirects'); fs.mkdirSync(destDir,{recursive:true}); if (fs.existsSync(src)) fs.copyFileSync(src,dest);\""
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
-    "appwrite": "^14.0.0",
-    "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.22",

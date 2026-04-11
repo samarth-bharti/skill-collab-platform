@@ -1,177 +1,215 @@
-// src/layouts/DashboardLayout.jsx
-import React, { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Briefcase, Compass, MessageSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Bell,
+  Briefcase,
+  Compass,
+  HelpCircle,
+  Home,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Settings,
+  Users,
+  X,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { getNotifications, getPendingRequests } from "../lib/api";
 
-const navLinks = [
-    { name: 'Home', path: '/dashboard', icon: Home },
-    { name: 'Projects', path: '/dashboard/projects', icon: Briefcase },
-    { name: 'Discover', path: '/dashboard/discover', icon: Compass },
-    { name: 'Chat', path: '/dashboard/chat', icon: MessageSquare },
+const primaryLinks = [
+  { label: "Overview", to: "/dashboard", icon: Home, end: true },
+  { label: "Network", to: "/dashboard/discover", icon: Users },
+  { label: "Projects", to: "/dashboard/projects", icon: Briefcase },
+  { label: "Chat", to: "/dashboard/chat", icon: MessageSquare },
 ];
 
-const bottomLinks = [
-    { name: 'Settings', path: '/dashboard/settings', icon: Settings },
-    { name: 'Support', path: '/dashboard/support', icon: HelpCircle },
+const secondaryLinks = [
+  { label: "Settings", to: "/dashboard/settings", icon: Settings },
+  { label: "Support", to: "/dashboard/support", icon: HelpCircle },
 ];
 
-const SidebarLink = ({ link, isExpanded }) => {
-    return (
-        <li>
-            <NavLink
-                to={link.path}
-                end={link.path === '/dashboard'}
-                className={({ isActive }) =>
-                    `flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group relative ${
-                        isActive
-                            ? 'bg-gradient-to-r from-green-500/20 to-green-500/10 text-white'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`
-                }
-            >
-                {({ isActive }) => (
-                    <>
-                        {isActive && (
-                            <motion.div
-                                layoutId="active-pill"
-                                className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-full"
-                            />
-                        )}
-                        <link.icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-green-400' : 'text-gray-500 group-hover:text-white'}`} />
-                        <AnimatePresence>
-                            {isExpanded && (
-                                <motion.span
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.2, delay: 0.1 }}
-                                    className="font-medium whitespace-nowrap"
-                                >
-                                    {link.name}
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
-                    </>
-                )}
-            </NavLink>
-        </li>
-    );
-};
+function NavItem({ item, onClick }) {
+  const Icon = item.icon;
 
+  return (
+    <NavLink
+      end={item.end}
+      to={item.to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+          isActive
+            ? "bg-lime-300 text-slate-950"
+            : "text-slate-300 hover:bg-white/6 hover:text-white"
+        }`
+      }
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+    </NavLink>
+  );
+}
 
-export default function DashboardLayout() {
-    // State to manage whether the sidebar is expanded or collapsed
-    const [isExpanded, setIsExpanded] = useState(false);
+function Sidebar({ onNavigate }) {
+  return (
+    <aside className="flex h-full flex-col justify-between rounded-[28px] border border-white/10 bg-slate-950/90 p-5 shadow-2xl backdrop-blur">
+      <div className="space-y-8">
+        <Link to="/dashboard" className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime-300 text-slate-950">
+            <Compass className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Skill Collab</p>
+            <h1 className="text-lg font-semibold text-white">Student Workspace</h1>
+          </div>
+        </Link>
 
-    const sidebarVariants = {
-        expanded: { width: '16rem' /* w-64 */ },
-        collapsed: { width: '5rem' /* w-20 */ }
+        <nav className="space-y-2">
+          {primaryLinks.map((item) => (
+            <NavItem key={item.to} item={item} onClick={onNavigate} />
+          ))}
+        </nav>
+      </div>
+
+      <div className="space-y-2">
+        {secondaryLinks.map((item) => (
+          <NavItem key={item.to} item={item} onClick={onNavigate} />
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+export default function DashboardLayout({ children }) {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadShellData = async () => {
+      const [nextNotifications, nextRequests] = await Promise.all([
+        getNotifications(currentUser.$id),
+        getPendingRequests(currentUser.$id),
+      ]);
+      setNotifications(nextNotifications);
+      setRequests(nextRequests);
     };
 
-    const mainVariants = {
-        expanded: { marginLeft: '16rem' },
-        collapsed: { marginLeft: '5rem' }
+    loadShellData();
+
+    window.addEventListener("skill-collab:data-updated", loadShellData);
+    return () => {
+      window.removeEventListener("skill-collab:data-updated", loadShellData);
     };
+  }, [currentUser]);
 
-    return (
-        <div className="min-h-screen bg-black text-white flex">
-            {/* Sidebar */}
-            <motion.aside
-                variants={sidebarVariants}
-                initial="collapsed"
-                animate={isExpanded ? "expanded" : "collapsed"}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                onMouseEnter={() => setIsExpanded(true)}
-                onMouseLeave={() => setIsExpanded(false)}
-                className="bg-gradient-to-b from-black to-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between fixed h-full z-20"
-            >
-                <div>
-                    {/* Logo/Header */}
-                    <div className="flex items-center gap-3 mb-10 h-10">
-                         <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Briefcase className="w-6 h-6 text-black" />
-                        </div>
-                        <AnimatePresence>
-                            {isExpanded && (
-                                <motion.h1
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.2, delay: 0.1 }}
-                                    className="text-xl font-bold text-white whitespace-nowrap"
-                                >
-                                    SkillHub
-                                </motion.h1>
-                            )}
-                        </AnimatePresence>
-                    </div>
+  const unreadCount = useMemo(
+    () => notifications.filter((item) => item.unread).length + requests.length,
+    [notifications, requests]
+  );
 
-                    {/* Navigation Links */}
-                    <nav>
-                        <ul className="space-y-3">
-                            {navLinks.map((link) => (
-                                <SidebarLink key={link.name} link={link} isExpanded={isExpanded} />
-                            ))}
-                        </ul>
-                        <div className="my-8 border-t border-gray-800" />
-                        <ul className="space-y-3">
-                            {bottomLinks.map((link) => (
-                                <SidebarLink key={link.name} link={link} isExpanded={isExpanded} />
-                            ))}
-                        </ul>
-                    </nav>
-                </div>
+  const initials = useMemo(() => {
+    const name = currentUser?.fullName || currentUser?.name || "User";
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }, [currentUser]);
 
-                {/* Footer / User Profile Area */}
-                <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700 overflow-hidden">
-                    <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-400 flex items-center justify-center text-black font-bold flex-shrink-0">
-                                AJ
-                            </div>
-                            <AnimatePresence>
-                                {isExpanded && (
-                                    <motion.div
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        transition={{ duration: 0.2, delay: 0.1 }}
-                                        className="whitespace-nowrap"
-                                    >
-                                        <p className="font-semibold text-sm">Alex Johnson</p>
-                                        <p className="text-xs text-gray-400">View Profile</p>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                        <AnimatePresence>
-                           {isExpanded && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                >
-                                    <LogOut className="w-5 h-5 text-gray-500 hover:text-red-500 cursor-pointer flex-shrink-0" />
-                                </motion.div>
-                           )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </motion.aside>
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
-            {/* Main Content Area */}
-            <motion.main
-                variants={mainVariants}
-                initial="collapsed"
-                animate={isExpanded ? "expanded" : "collapsed"}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex-1 overflow-y-auto"
-            >
-                {/* Outlet is where your page components like DashboardHomePage will be rendered */}
-                <Outlet />
-            </motion.main>
+  const content = children || <Outlet />;
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(163,230,53,0.18),_transparent_30%),linear-gradient(180deg,#07111f_0%,#020617_45%,#020617_100%)] text-white">
+      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 lg:px-6">
+        <div className="hidden w-72 shrink-0 lg:block">
+          <Sidebar />
         </div>
-    );
+
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <header className="sticky top-4 z-20 flex items-center justify-between rounded-[28px] border border-white/10 bg-slate-950/75 px-5 py-4 shadow-xl backdrop-blur">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 lg:hidden"
+                onClick={() => setMobileOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Build Together</p>
+                <h2 className="text-lg font-semibold text-white">Frontend collaboration prototype</h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 md:block">
+                {requests.length} pending requests
+              </div>
+              <Link
+                to="/dashboard/discover"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-lime-300 px-1 text-[11px] font-semibold text-slate-950">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+              <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 sm:flex">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-300 font-semibold text-slate-950">
+                  {initials}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{currentUser?.fullName || currentUser?.name}</p>
+                  <p className="text-xs text-slate-400">{currentUser?.role || "Student Builder"}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-200"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+          </header>
+
+          <main className="min-h-[calc(100vh-7rem)]">{content}</main>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 p-4 backdrop-blur lg:hidden">
+          <div className="mx-auto flex h-full max-w-sm flex-col gap-4">
+            <div className="flex items-center justify-between rounded-[28px] border border-white/10 bg-slate-900 px-5 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Navigation</p>
+                <p className="text-lg font-semibold text-white">Skill Collab</p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5"
+                onClick={() => setMobileOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <Sidebar onNavigate={() => setMobileOpen(false)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

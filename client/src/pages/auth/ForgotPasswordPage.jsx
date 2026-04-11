@@ -10,7 +10,7 @@ const AuthPageWrapper = ({ children }) => (
   <div className="w-full lg:w-1/2 p-8 md:p-12">
     <div className="absolute top-4 left-4 md:top-8 md:left-8">
       <Link to="/login" className="text-gray-400 hover:text-white transition-colors flex items-center">
-        <span className="mr-2">←</span> go back to login screen
+        <span className="mr-2">&larr;</span> go back to login screen
       </Link>
     </div>
     <div className="mt-16">{children}</div>
@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     
     try {
       await requestPasswordReset(email);
-      setMessage('Recovery email sent! Please check your inbox.');
+      setMessage('Reset request saved in this browser. You can now open the reset page and choose a new password.');
     } catch (error) {
       let errorMessage = 'Failed to send recovery email. Please try again.';
       if (error.message) {
@@ -75,3 +75,5 @@ export default function ForgotPasswordPage() {
     </AuthPageWrapper>
   );
 }
+
+

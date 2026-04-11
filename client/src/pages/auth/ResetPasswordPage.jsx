@@ -1,6 +1,6 @@
 // src/pages/auth/ResetPasswordPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import FormInput from '../../components/common/FormInput';
 import ActionButton from '../../components/common/ActionButton';
@@ -19,24 +19,20 @@ const AuthPageWrapper = ({ children }) => (
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [userId, setUserId] = useState(null);
-  const [secret, setSecret] = useState(null);
+  const [canReset, setCanReset] = useState(false);
   const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
   const [errors, setErrors] = useState({});
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const userIdParam = searchParams.get('userId') || searchParams.get('user');
-    const secretParam = searchParams.get('secret');
-    if (userIdParam && secretParam) {
-      setUserId(userIdParam);
-      setSecret(secretParam);
+    const pendingResetEmail = window.localStorage.getItem('skill-collab.resetEmail');
+    if (pendingResetEmail) {
+      setCanReset(true);
     } else {
-      setErrors({ general: "Invalid or expired reset link. Please try again." });
+      setErrors({ general: 'No local reset request was found. Start from forgot password first.' });
     }
-  }, [searchParams]);
+  }, []);
 
   const validate = () => {
     const newErrors = {};
@@ -57,14 +53,14 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     const validationErrors = validate();
     setErrors(validationErrors);
-    if (Object.keys(validationErrors).length === 0 && userId && secret) {
+    if (Object.keys(validationErrors).length === 0 && canReset) {
       setIsSubmitting(true);
       setErrors({});
       try {
-        await confirmPasswordReset(userId, secret, formData.password);
+        await confirmPasswordReset(null, null, formData.password);
         setIsSuccess(true);
       } catch {
-        setErrors({ general: "Failed to reset password. The link may have expired." });
+        setErrors({ general: 'Failed to reset password. Please try the forgot-password flow again.' });
       } finally {
         setIsSubmitting(false);
       }
@@ -89,14 +85,14 @@ export default function ResetPasswordPage() {
       <Logo />
       <div className="mt-12">
         <h2 className="text-4xl font-semibold text-white">Create New Password</h2>
-        <p className="text-white/80 mt-2">Choose a new, secure password.</p>
+        <p className="text-white/80 mt-2">Choose a new password for this browser-only demo account.</p>
       </div>
       <form onSubmit={handleSubmit} className="mt-8 space-y-6 max-w-lg" autoComplete="off">
         <FormInput label="New Password" name="password" type="password" placeholder="Enter new password" value={formData.password} onChange={handleChange} error={errors.password} autoComplete="new-password" />
         <FormInput label="Confirm Password" name="confirmPassword" type="password" placeholder="Re-enter new password" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} autoComplete="new-password" />
         {errors.general && <p className="text-red-500 text-sm text-center">{errors.general}</p>}
         <div className="pt-4">
-          <ActionButton text="Reset Password" type="submit" disabled={isSubmitting || !userId || !secret} />
+          <ActionButton text="Reset Password" type="submit" disabled={isSubmitting || !canReset} />
         </div>
       </form>
     </AuthPageWrapper>

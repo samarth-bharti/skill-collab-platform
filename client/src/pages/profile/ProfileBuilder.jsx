@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import ProfileForm from "../../components/profile/ProfileForm";
-import { createUserProfile, getUserProfile } from "../../lib/api"; // fallback below if missing
+import { createUserProfile, getUserProfile } from "../../lib/api";
 
 export default function ProfileBuilder() {
   const { user } = useAuth();
@@ -14,14 +14,8 @@ export default function ProfileBuilder() {
     if (!user) return;
     const load = async () => {
       try {
-        if (typeof getUserProfile === "function") {
-          const p = await getUserProfile(user.$id);
-          setInitial(p || {});
-        } else {
-          // no helper: attempt fetch
-          const res = await fetch(`/api/profile/${user.$id}`);
-          if (res.ok) setInitial(await res.json());
-        }
+        const profile = await getUserProfile(user.$id);
+        setInitial(profile || {});
       } catch {
         setInitial({});
       }
@@ -33,16 +27,7 @@ export default function ProfileBuilder() {
     if (!user) throw new Error("Not authenticated");
     setSaving(true);
     try {
-      if (typeof createUserProfile === "function") {
-        await createUserProfile(user.$id, payload);
-      } else {
-        await fetch(`/api/profile/${user.$id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-      // after initial setup redirect to dashboard
+      await createUserProfile(user.$id, payload);
       navigate("/dashboard", { replace: true });
     } finally {
       setSaving(false);
@@ -50,7 +35,7 @@ export default function ProfileBuilder() {
   };
 
   if (initial === null) {
-    return <div className="p-8 text-center text-gray-400">Loading profile builder…</div>;
+    return <div className="p-8 text-center text-gray-400">Loading profile builder...</div>;
   }
 
   return (

@@ -1,83 +1,108 @@
-// src/contexts/AuthContext.jsx
-
 import React, { createContext, useContext, useEffect, useState } from "react";
-// Import the Appwrite account service we created
-import { account } from "../lib/appwrite";
-import { ID } from "appwrite";
+import { STORAGE_KEYS, ensureSeedData, sanitizeUser, createDefaultSettings } from "../lib/api";
 
-// 1. Create the context
 export const AuthContext = createContext(null);
 
-// 2. Create the provider component
+const readJson = (key, fallback) => {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
+const writeJson = (key, value) => {
+  window.localStorage.setItem(key, JSON.stringify(value));
+};
+
+const getUsers = () => readJson(STORAGE_KEYS.users, []);
+const saveUsers = (users) => writeJson(STORAGE_KEYS.users, users);
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 3. Check for a logged-in user on app load
   useEffect(() => {
-    // This function runs once when the app loads
-    async function checkUserSession() {
-      try {
-        // 'account.get()' checks if there is an active session
-        const userAccount = await account.get();
-        setCurrentUser(userAccount);
-      } catch {
-        // No user session found
-        setCurrentUser(null);
-      } finally {
-        // We're done loading
-        setIsLoading(false);
-      }
-    }
+    ensureSeedData();
+    setCurrentUser(readJson(STORAGE_KEYS.currentUser, null));
+    setIsLoading(false);
 
-    checkUserSession();
+    const syncCurrentUser = () => {
+      setCurrentUser(readJson(STORAGE_KEYS.currentUser, null));
+    };
+
+    window.addEventListener("skill-collab:user-updated", syncCurrentUser);
+    return () => {
+      window.removeEventListener("skill-collab:user-updated", syncCurrentUser);
+    };
   }, []);
 
-  // 4. Implement the login function
   const login = async (email, password) => {
-    try {
-      // Create a session using Appwrite
-      await account.createEmailPasswordSession(email, password);
-      // Get the user data and update state
-      const userAccount = await account.get();
-      setCurrentUser(userAccount);
-      return userAccount;
-    } catch (error) {
-      console.error("Appwrite login error:", error);
-      throw error; // Re-throw the error so the login page can catch it
+    const user = getUsers().find(
+      (entry) => entry.email.toLowerCase() === email.toLowerCase() && entry.password === password
+    );
+
+    if (!user) {
+      throw new Error("Invalid email or password.");
     }
+
+    const safeUser = sanitizeUser(user);
+    writeJson(STORAGE_KEYS.currentUser, safeUser);
+    setCurrentUser(safeUser);
+    return safeUser;
   };
 
-  // 5. Implement the signup function
   const signup = async (email, password, name) => {
-    try {
-      // Create a new user account
-      // Note: Appwrite uses ID.unique() to generate a safe, unique ID
-      await account.create(ID.unique(), email, password, name);
-      
-      // After creating the account, log the user in
-      const userAccount = await login(email, password);
-      return userAccount;
-    } catch (error) {
-      console.error("Appwrite signup error:", error);
-      throw error;
+    const users = getUsers();
+    const existing = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      throw new Error("An account with this email already exists.");
     }
+
+    const userId = `user-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    const newUser = {
+      $id: userId,
+      id: userId,
+      userId,
+      name,
+      fullName: name,
+      email,
+      password,
+      role: "Product Builder",
+      status: "online",
+      topSkills: [],
+      skillsVerified: 0,
+      endorsements: 0,
+      githubScore: 0,
+      profilePicture: "",
+      bio: "",
+      createdAt: timestamp,
+      $createdAt: timestamp,
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+
+    const settingsMap = readJson(STORAGE_KEYS.settings, {});
+    settingsMap[userId] = createDefaultSettings(newUser);
+    writeJson(STORAGE_KEYS.settings, settingsMap);
+
+    const safeUser = sanitizeUser(newUser);
+    writeJson(STORAGE_KEYS.currentUser, safeUser);
+    setCurrentUser(safeUser);
+    return safeUser;
   };
 
-  // 6. Implement the logout function
   const logout = async () => {
-    try {
-      // Delete the current session
-      await account.deleteSession("current");
-      setCurrentUser(null);
-    } catch (error) {
-      console.error("Appwrite logout error:", error);
-      throw error;
-    }
+    window.localStorage.removeItem(STORAGE_KEYS.currentUser);
+    setCurrentUser(null);
   };
 
-  // 7. Provide the context values to children
   const authContextValue = {
+    user: currentUser,
     currentUser,
     isLoading,
     login,
@@ -91,7 +116,7 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-// Custom hook for using AuthContext easily
+
 export function useAuth() {
   return useContext(AuthContext);
 }

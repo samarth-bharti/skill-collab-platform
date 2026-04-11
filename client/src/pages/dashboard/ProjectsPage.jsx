@@ -1,192 +1,251 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Briefcase, Search, Filter, DollarSign, UserCheck, RefreshCw } from 'lucide-react';
-import { getProjects } from '../../lib/api';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FolderPlus, Search } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { createProject, getProjectMembership, getProjects, requestToJoinProject } from "../../lib/api";
 
-const ProjectCardSkeleton = () => (
-    <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-700 animate-pulse">
-        <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-700 rounded-xl"></div>
-                <div>
-                    <div className="h-6 w-48 bg-gray-700 rounded mb-2"></div>
-                    <div className="h-4 w-32 bg-gray-700 rounded"></div>
-                </div>
-            </div>
-            <div className="text-right">
-                <div className="h-8 w-16 bg-gray-700 rounded"></div>
-            </div>
-        </div>
-        <div className="mb-4">
-            <div className="h-4 w-24 bg-gray-700 rounded mb-2"></div>
-            <div className="flex flex-wrap gap-2">
-                <div className="h-6 w-20 bg-gray-700 rounded-full"></div>
-                <div className="h-6 w-24 bg-gray-700 rounded-full"></div>
-            </div>
-        </div>
-        <div className="flex items-center justify-between text-xs pt-4 border-t border-gray-700">
-            <div className="h-4 w-28 bg-gray-700 rounded"></div>
-            <div className="h-4 w-32 bg-gray-700 rounded"></div>
-            <div className="h-6 w-20 bg-gray-700 rounded-full"></div>
-        </div>
-    </div>
-);
-
-const ProjectCard = ({ project, onClick }) => (
-    <motion.div
-        className="group p-6 rounded-2xl bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-gray-700 hover:border-green-500/50 transition-all duration-300 cursor-pointer"
-        onClick={onClick}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.03, y: -5 }}
-        layout
-    >
-        <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center text-black font-bold text-lg">
-                    {project.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
-                </div>
-                <div>
-                    <h4 className="font-bold text-white group-hover:text-green-400 transition-colors text-lg">
-                        {project.name}
-                    </h4>
-                    <p className="text-xs text-gray-400">{project.type} • {project.members} collaborators</p>
-                </div>
-            </div>
-            <div className="text-right">
-                <div className="text-xl font-bold text-green-500">{project.progress}%</div>
-                <div className="text-xs text-gray-400">Complete</div>
-            </div>
-        </div>
-
-        <div className="mb-4">
-            <div className="text-xs text-gray-400 mb-2">Required Skills:</div>
-            <div className="flex flex-wrap gap-2">
-                {project.requiredSkills.slice(0, 3).map((skill) => (
-                    <span key={skill} className="px-2 py-1 text-xs bg-green-900/30 text-green-400 border border-green-700/50 rounded-full">
-                        {skill}
-                    </span>
-                ))}
-            </div>
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-gray-400 border-t border-gray-700 pt-4">
-            <div className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" /> Budget: ${(project.budget / 1000).toFixed(0)}K
-            </div>
-            <div className="flex items-center gap-1 text-green-500">
-                <UserCheck className="w-3 h-3" /> {project.skillsVerified}% Skills Verified
-            </div>
-            <div className={`px-2 py-1 rounded-full text-xs ${project.status === 'Active' ? 'text-green-400 bg-green-900/30' : 'text-orange-400 bg-orange-900/30'}`}>
-                {project.status}
-            </div>
-        </div>
-    </motion.div>
-);
+const initialForm = {
+  name: "",
+  tagline: "",
+  description: "",
+  category: "Student Project",
+  visibility: "Public",
+  dueDate: "",
+  requiredSkills: "",
+  lookingFor: "",
+};
 
 export default function ProjectsPage() {
-    const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [projects, setProjects] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [query, setQuery] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [memberships, setMemberships] = useState({});
 
-    const loadProjects = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const projectData = await getProjects();
-            setProjects(projectData);
-        } catch (e) {
-            console.error('Failed to load projects:', e);
-            setError('Could not load projects. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const loadProjects = async () => {
+    const nextProjects = await getProjects();
+    setProjects(nextProjects);
+    if (currentUser) {
+      const states = await Promise.all(
+        nextProjects.map(async (project) => [project.id, await getProjectMembership(project.id, currentUser.$id)])
+      );
+      setMemberships(Object.fromEntries(states));
+    }
+  };
 
-    useEffect(() => {
-        loadProjects();
-    }, [loadProjects]);
+  useEffect(() => {
+    loadProjects();
+  }, [currentUser]);
 
-    const filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const filteredProjects = useMemo(
+    () =>
+      projects.filter(
+        (project) =>
+          project.name.toLowerCase().includes(query.toLowerCase()) ||
+          project.description.toLowerCase().includes(query.toLowerCase()) ||
+          project.requiredSkills.some((skill) => skill.toLowerCase().includes(query.toLowerCase()))
+      ),
+    [projects, query]
+  );
 
-    return (
-        <div className="min-h-screen bg-black text-white p-8">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-                className="flex items-center justify-between mb-10"
-            >
-                <div className="flex items-center gap-4">
-                    <Briefcase className="w-10 h-10 text-green-400" />
-                    <div>
-                        <h1 className="text-4xl font-bold">Projects</h1>
-                        <p className="text-gray-400">Browse and manage all skill-based collaborations.</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search projects..."
-                            className="pl-10 pr-4 py-2 w-72 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <button className="p-2 bg-gray-900 border border-gray-700 rounded-lg hover:text-green-500">
-                        <Filter className="w-5 h-5" />
-                    </button>
-                </div>
-            </motion.div>
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-xl md:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.22em] text-slate-500">Project workspaces</p>
+            <h1 className="mt-3 text-3xl font-semibold text-white md:text-5xl">
+              Create, join, and track projects like a lightweight GitHub plus LinkedIn workspace.
+            </h1>
+            <p className="mt-4 text-slate-300">
+              Each project has collaborators, required skills, tasks, progress, updates, and room for backend APIs later.
+            </p>
+          </div>
 
-            {loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {Array.from({ length: 6 }).map((_, i) => <ProjectCardSkeleton key={i} />)}
-                </div>
-            )}
-
-            {error && (
-                <div className="text-center py-20 text-yellow-300">
-                    <p className="text-lg mb-4">{error}</p>
-                    <button onClick={loadProjects} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center mx-auto">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Try Again
-                    </button>
-                </div>
-            )}
-
-            {!loading && !error && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {filteredProjects.map((project, index) => (
-                        <motion.div
-                            key={project.$id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 + index * 0.1 }}
-                        >
-                            <ProjectCard
-                                project={project}
-                                onClick={() => navigate(`/dashboard/projects/${project.$id}`)}
-                            />
-                        </motion.div>
-                    ))}
-                </div>
-            )}
-
-            {!loading && !error && filteredProjects.length === 0 && (
-                <div className="text-center py-20 text-gray-500">
-                    <p className="text-lg">No projects found.</p>
-                    <p>Try adjusting your search query.</p>
-                </div>
-            )}
+          <button
+            type="button"
+            onClick={() => setShowForm((value) => !value)}
+            className="inline-flex items-center gap-2 rounded-2xl bg-lime-300 px-5 py-4 text-sm font-medium text-slate-950"
+          >
+            <FolderPlus className="h-4 w-4" />
+            {showForm ? "Close project form" : "Create project"}
+          </button>
         </div>
-    );
+
+        <div className="relative mt-6">
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search projects, skills, or focus areas"
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 py-3 pl-12 pr-4 text-white outline-none transition focus:border-lime-300/40"
+          />
+        </div>
+      </section>
+
+      {showForm && (
+        <section className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-xl">
+          <div className="grid gap-4 md:grid-cols-2">
+            <input
+              value={form.name}
+              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              placeholder="Project name"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+            <input
+              value={form.tagline}
+              onChange={(event) => setForm((prev) => ({ ...prev, tagline: event.target.value }))}
+              placeholder="Short tagline"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+            <textarea
+              value={form.description}
+              onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+              placeholder="What are you building?"
+              className="min-h-32 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none md:col-span-2"
+            />
+            <input
+              value={form.category}
+              onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
+              placeholder="Category"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+            <input
+              type="date"
+              value={form.dueDate}
+              onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))}
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+            <input
+              value={form.requiredSkills}
+              onChange={(event) => setForm((prev) => ({ ...prev, requiredSkills: event.target.value }))}
+              placeholder="Required skills, comma separated"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+            <input
+              value={form.lookingFor}
+              onChange={(event) => setForm((prev) => ({ ...prev, lookingFor: event.target.value }))}
+              placeholder="Looking for, comma separated"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none"
+            />
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!currentUser || !form.name.trim()) return;
+
+                const nextProject = await createProject(currentUser.$id, {
+                  ...form,
+                  requiredSkills: form.requiredSkills
+                    .split(",")
+                    .map((skill) => skill.trim())
+                    .filter(Boolean),
+                  lookingFor: form.lookingFor
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                });
+
+                setForm(initialForm);
+                setShowForm(false);
+                await loadProjects();
+                navigate(`/dashboard/projects/${nextProject.id}`);
+              }}
+              className="rounded-2xl bg-lime-300 px-5 py-3 text-sm font-medium text-slate-950"
+            >
+              Create workspace
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        {filteredProjects.map((project) => (
+          <div
+            key={project.id}
+            onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(`/dashboard/projects/${project.id}`);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            className="rounded-[28px] border border-white/10 bg-white/5 p-6 text-left shadow-xl transition hover:border-lime-300/40 hover:bg-white/10"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-slate-400">{project.category}</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">{project.name}</h2>
+                <p className="mt-2 text-sm text-slate-300">{project.tagline}</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-xs text-slate-300">
+                {project.status}
+              </span>
+            </div>
+
+            <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-400">{project.description}</p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {project.requiredSkills.slice(0, 4).map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs text-lime-100"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <div className="flex items-center justify-between text-sm text-slate-300">
+                <span>Progress</span>
+                <span>{project.progress}%</span>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-white/10">
+                <div className="h-2 rounded-full bg-lime-300" style={{ width: `${project.progress}%` }} />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between text-sm text-slate-400">
+              <span>{project.members.length} collaborators</span>
+              <span>Due {project.dueDate || "TBD"}</span>
+            </div>
+
+            <div className="mt-4">
+              {memberships[project.id] === "visitor" && (
+                <button
+                  type="button"
+                  onClick={async (event) => {
+                    event.stopPropagation();
+                    if (!currentUser) return;
+                    await requestToJoinProject(project.id, currentUser.$id);
+                    await loadProjects();
+                  }}
+                  className="w-full rounded-xl border border-lime-300/30 bg-lime-300/10 px-4 py-3 text-sm text-lime-100"
+                >
+                  Request to join
+                </button>
+              )}
+              {memberships[project.id] === "requested" && (
+                <div className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
+                  Join request sent
+                </div>
+              )}
+              {memberships[project.id] === "invited" && (
+                <div className="rounded-xl border border-lime-300/30 bg-lime-300/10 px-4 py-3 text-sm text-lime-100">
+                  You have a pending invite for this project
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
 }

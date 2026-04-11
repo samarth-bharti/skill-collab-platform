@@ -1,26 +1,25 @@
-// src/pages/auth/ProfileBuilderPage.jsx
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext'; // CORRECTED IMPORT PATH
-import Logo from '../../components/common/Logo';
-import FormInput from '../../components/common/FormInput';
-import { uploadProfilePicture, createUserProfile } from '../../lib/api';
-
-// --- SVG ICONS (omitted for brevity, keep your existing SVG components) ---
-const GitHubIcon = () => ( <svg>...</svg> );
-const LinkedInIcon = () => ( <svg>...</svg> );
-const XIcon = () => ( <svg>...</svg> );
-const GlobalStyles = () => ( <style>{`...`}</style> );
-
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import AuthLayout from '../../layouts/AuthLayout';
+import ProfileForm from '../../components/profile/ProfileForm';
+import { useAuth } from '../../hooks/useAuth';
+import { createUserProfile } from '../../lib/api';
 
 export default function ProfileBuilderPage() {
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
+    const [saving, setSaving] = useState(false);
 
-    const handleSaveProfile = (profile) => {
-        console.log('Saving profile:', profile);
-        // Here you would typically save the profile to your backend
-        // For now, we'll just navigate to the dashboard
-        navigate('/dashboard');
+    const handleSaveProfile = async (profile) => {
+        if (!currentUser) return;
+        setSaving(true);
+        try {
+            await createUserProfile(currentUser.$id, profile);
+            navigate('/dashboard');
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -33,7 +32,7 @@ export default function ProfileBuilderPage() {
             >
                 <h2 className="text-4xl font-bold text-white mb-4">Build Your Profile</h2>
                 <p className="text-gray-400 mb-8">Tell us more about yourself to get started.</p>
-                <ProfileForm onSave={handleSaveProfile} />
+                <ProfileForm onSave={handleSaveProfile} saving={saving} />
             </motion.div>
         </AuthLayout>
     );
